@@ -1,0 +1,67 @@
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: pvpool-controller
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - job
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - pvpool.puppet.com
+  resources:
+  - checkouts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - pvpool.puppet.com
+  resources:
+  - checkouts/status
+  verbs:
+  - update
+- apiGroups:
+  - pvpool.puppet.com
+  resources:
+  - pools
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - pvpool.puppet.com
+  resources:
+  - pools/status
+  verbs:
+  - update
