@@ -14,8 +14,8 @@ func ValidatePersistentVolumeClaimTemplate(tpl *pvpoolv1alpha1.PersistentVolumeC
 	errs = append(errs, apimachineryvalidation.ValidateAnnotations(tpl.Annotations, p.Child("metadata", "labels"))...)
 
 	if !selector.Empty() {
-		labels := labels.Set(tpl.Labels)
-		if !selector.Matches(labels) {
+		ls := labels.Set(tpl.Labels)
+		if !selector.Matches(ls) {
 			errs = append(errs, field.Invalid(p.Child("metadata", "labels"), tpl.Labels, "`selector` does not match template `labels`"))
 		}
 	}
