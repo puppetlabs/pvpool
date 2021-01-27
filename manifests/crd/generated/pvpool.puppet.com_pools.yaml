@@ -46,10 +46,10 @@ spec:
                     description: Template is the configuration for the job.
                     properties:
                       metadata:
-                        description: 'Standard object''s metadata of the jobs created from this template. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
                         type: object
+                        x-kubernetes-preserve-unknown-fields: true
                       spec:
-                        description: 'Specification of the desired behavior of the job. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status'
+                        description: JobSpec describes how the job execution will look like.
                         properties:
                           activeDeadlineSeconds:
                             description: Specifies the duration in seconds relative to the startTime that the job may be active before the system tries to terminate it; value must be positive integer
@@ -3849,6 +3849,8 @@ spec:
                         required:
                         - template
                         type: object
+                    required:
+                    - spec
                     type: object
                   volumeName:
                     default: workspace
@@ -3897,6 +3899,7 @@ spec:
                 properties:
                   metadata:
                     type: object
+                    x-kubernetes-preserve-unknown-fields: true
                   spec:
                     description: PersistentVolumeClaimSpec describes the common attributes of storage devices and allows a Source for provider-specific attributes
                     properties:

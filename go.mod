@@ -4,11 +4,13 @@ go 1.14
 
 require (
 	github.com/google/uuid v1.1.2
-	github.com/puppetlabs/leg/k8sutil v0.0.0-00010101000000-000000000000
+	github.com/puppetlabs/leg/k8sutil v0.1.1-0.20210125225836-b0ab74337215
 	github.com/puppetlabs/leg/mainutil v0.1.2
 	github.com/puppetlabs/leg/mathutil v0.1.0
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.20.1
+	k8s.io/client-go v0.19.2
+	k8s.io/klog/v2 v2.4.0
 	sigs.k8s.io/controller-runtime v0.7.0
 	sigs.k8s.io/controller-tools v0.4.1
 )
@@ -19,5 +21,3 @@ replace (
 	k8s.io/apimachinery => k8s.io/apimachinery v0.19.2
 	k8s.io/client-go => k8s.io/client-go v0.19.2
 )
-
-replace github.com/puppetlabs/leg/k8sutil => ../leg/k8sutil

@@ -9,13 +9,12 @@ rules:
 - apiGroups:
   - batch
   resources:
-  - job
+  - jobs
   verbs:
   - create
   - delete
   - get
   - list
-  - update
   - watch
 - apiGroups:
   - ""
@@ -58,6 +57,7 @@ rules:
   verbs:
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - pvpool.puppet.com

@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvpool-controller
+spec:
+  replicas: 1
+  template:
+    spec:
+      serviceAccountName: pvpool-controller
+      containers:
+      - name: pvpool-controller
+        image: ko://github.com/puppetlabs/pvpool/cmd/pvpool-controller
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [all]
+          runAsUser: 65532
+          runAsGroup: 65532

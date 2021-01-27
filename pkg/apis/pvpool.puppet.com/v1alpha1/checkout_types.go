@@ -34,7 +34,7 @@ type CheckoutSpec struct {
 	// Defaults to ReadWriteOnce.
 	//
 	// +optional
-	// +kubebuilder:default=["ReadWriteOnce"]
+	// +kubebuilder:default={"ReadWriteOnce"}
 	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
 }
 

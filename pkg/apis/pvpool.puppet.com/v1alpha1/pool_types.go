@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -57,7 +56,7 @@ type PoolSpec struct {
 // configured name.
 type MountJob struct {
 	// Template is the configuration for the job.
-	Template batchv1beta1.JobTemplateSpec `json:"template"`
+	Template JobTemplate `json:"template"`
 
 	// VolumeName is the name of the volume to be added to the template to
 	// access the persistent volume. The volume must either not exist in the
@@ -101,7 +100,9 @@ type PoolList struct {
 // PoolReference is a reference to a Pool.
 type PoolReference struct {
 	// Namespace identifies the Kubernetes namespace of the pool.
-	Namespace string `json:"namespace"`
+	//
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
 
 	// Name identifies the name of the pool within the namespace.
 	Name string `json:"name"`

@@ -1,0 +1,3 @@
+namePrefix:
+- path: metadata/name
+- path: 'metadata/labels/app.kubernetes.io\/instance'
