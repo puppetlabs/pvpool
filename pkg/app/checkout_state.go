@@ -4,32 +4,34 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/puppetlabs/leg/errmap/pkg/errmark"
+	"github.com/puppetlabs/leg/k8sutil/pkg/controller/eventctx"
 	corev1obj "github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/api/corev1"
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	"github.com/puppetlabs/leg/mathutil/pkg/rand"
 	"github.com/puppetlabs/pvpool/pkg/obj"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type CheckoutState struct {
-	Checkout *obj.Checkout
+	Checkout              *obj.Checkout
+	PersistentVolumeClaim *corev1obj.PersistentVolumeClaim
 
 	// PersistentVolume is the PV corresponding to the PVC owned by this
 	// checkout. If this object exists, but not PersistentVolumeClaim, we merely
 	// need to set up the PVC to point at this PV.
 	PersistentVolume *corev1obj.PersistentVolume
-
-	// PersistentVolumeClaim is the PVC owned by this checkout.
-	PersistentVolumeClaim *corev1obj.PersistentVolumeClaim
 }
 
 var _ lifecycle.Loader = &CheckoutState{}
 var _ lifecycle.Persister = &CheckoutState{}
 
-func (cs *CheckoutState) loadFromVolumeName(ctx context.Context, cl client.Client, pool *obj.Pool) error {
+func (cs *CheckoutState) loadFromVolumeName(ctx context.Context, cl client.Client) error {
 	volumeName := cs.Checkout.Object.Status.VolumeName
 	if volumeName == "" {
 		return nil
@@ -51,37 +53,41 @@ func (cs *CheckoutState) loadFromVolumeName(ctx context.Context, cl client.Clien
 		return err
 	}
 
-	// It's possible the PVC was deleted from under us, in which case the claim
-	// won't load. In this case we assume whatever stole it knows what it's
-	// doing with the volume and pick a new one from the pool.
 	if ctrl := metav1.GetControllerOf(claim.Object); ctrl != nil {
 		switch {
 		case ctrl.UID == cs.Checkout.Object.GetUID():
-			// This is our PVC.
 			klog.V(4).InfoS("checkout state: load: persistent volume is used by this checkout", "checkout", cs.Checkout.Key, "pv", volume.Name)
-			cs.PersistentVolume = volume
-			cs.PersistentVolumeClaim = claim
-		case ctrl.UID == pool.Object.GetUID():
-			klog.V(4).InfoS("checkout state: load: persistent volume is still in pool", "checkout", cs.Checkout.Key, "pv", volume.Name)
-			pr := NewPoolReplica(pool, client.ObjectKeyFromObject(claim.Object))
-			if ok, err := pr.Load(ctx, cl); err != nil {
-				return err
-			} else if ok {
-				cs.PersistentVolume = pr.PersistentVolume
-			}
-		default:
-			// The claim belongs to someone else, so again, we'll just pick a
-			// new volume from the pool.
+		case schema.FromAPIVersionAndKind(ctrl.APIVersion, ctrl.Kind) == obj.CheckoutKind:
+			// Race condition where the claim has been reassigned from under us.
 			klog.InfoS("checkout state: load: persistent volume stolen (not using)", "checkout", cs.Checkout.Key, "pv", volume.Name)
+			return nil
+		default:
+			klog.V(4).InfoS("checkout state: load: persistent volume is still in pool", "checkout", cs.Checkout.Key, "pv", volume.Name)
 		}
 	}
 
+	cs.PersistentVolume = volume
 	return nil
 }
 
-func (cs *CheckoutState) loadFromPool(ctx context.Context, cl client.Client, pool *obj.Pool) (bool, error) {
+func (cs *CheckoutState) loadFromPool(ctx context.Context, cl client.Client) (bool, error) {
 	if cs.PersistentVolume != nil {
 		return true, nil
+	}
+
+	namespace := cs.Checkout.Object.Spec.PoolRef.Namespace
+	if namespace == "" {
+		namespace = cs.Checkout.Key.Namespace
+	}
+
+	pool := obj.NewPool(client.ObjectKey{
+		Namespace: namespace,
+		Name:      cs.Checkout.Object.Spec.PoolRef.Name,
+	})
+	if _, err := (lifecycle.RequiredLoader{Loader: pool}).Load(ctx, cl); err != nil {
+		eventctx.EventRecorder(ctx).Eventf(cs.Checkout.Object, "Warning", "PoolAvailability", "Pool %s does not exist", pool.Key)
+
+		return false, err
 	}
 
 	klog.V(4).InfoS("checkout state: load: loading from pool", "checkout", cs.Checkout.Key, "pool", pool.Key)
@@ -101,10 +107,10 @@ func (cs *CheckoutState) loadFromPool(ctx context.Context, cl client.Client, poo
 	if err != nil {
 		return false, err
 	} else if !found {
+		eventctx.EventRecorder(ctx).Event(cs.Checkout.Object, "Warning", "PoolAvailability", "Pool has no available PVCs to check out")
+
 		klog.InfoS("checkout state: load: pool has no available PVCs", "checkout", cs.Checkout.Key, "pool", pool.Key)
-		// No available PVCs!
-		// XXX: ERROR
-		return false, nil
+		return false, errmark.MarkTransient(fmt.Errorf("pool %s has no available PVCs", pool.Key))
 	}
 
 	klog.V(4).InfoS("checkout state: load: using PVC from pool", "checkout", cs.Checkout.Key, "pool", pool.Key, "pvc", pr.PersistentVolumeClaim.Key, "pv", pr.PersistentVolume.Name)
@@ -115,41 +121,18 @@ func (cs *CheckoutState) loadFromPool(ctx context.Context, cl client.Client, poo
 }
 
 func (cs *CheckoutState) Load(ctx context.Context, cl client.Client) (bool, error) {
-	namespace := cs.Checkout.Object.Spec.PoolRef.Namespace
-	if namespace == "" {
-		namespace = cs.Checkout.Key.Namespace
+	if _, err := cs.PersistentVolumeClaim.Load(ctx, cl); err != nil {
+		return false, nil
 	}
 
-	pool := obj.NewPool(client.ObjectKey{
-		Namespace: namespace,
-		Name:      cs.Checkout.Object.Spec.PoolRef.Name,
-	})
-	if _, err := (lifecycle.RequiredLoader{Loader: pool}).Load(ctx, cl); err != nil {
-		return false, err
-	}
-
-	if err := cs.loadFromVolumeName(ctx, cl, pool); err != nil {
+	if err := cs.loadFromVolumeName(ctx, cl); err != nil {
 		return false, err
 	}
 
 	// If we did not end up setting the PV above, we need to request a new one
 	// from the pool.
-	if ok, err := cs.loadFromPool(ctx, cl, pool); err != nil || !ok {
+	if ok, err := cs.loadFromPool(ctx, cl); err != nil || !ok {
 		return ok, err
-	}
-
-	// In any case, if we didn't resolve a PVC, we'll make sure we're pointing
-	// at one for persistence later.
-	if cs.PersistentVolumeClaim == nil {
-		klog.V(4).InfoS("checkout state: load: no owned PVC found", "checkout", cs.Checkout.Key)
-		cs.PersistentVolumeClaim = corev1obj.NewPersistentVolumeClaim(cs.Checkout.Key)
-
-		// It could be that the pool changed part way through this process, so
-		// we'll go ahead and try to load this so we don't get conflicts when we
-		// try to save.
-		if _, err := cs.PersistentVolumeClaim.Load(ctx, cl); err != nil {
-			return false, nil
-		}
 	}
 
 	return true, nil
@@ -164,27 +147,28 @@ func (cs *CheckoutState) Persist(ctx context.Context, cl client.Client) error {
 		return err
 	}
 
-	if err := cs.PersistentVolumeClaim.Persist(ctx, cl); err != nil {
+	if err := cs.PersistentVolumeClaim.Persist(ctx, cl); errors.IsInvalid(err) {
+		return errmark.MarkUser(err)
+	} else if err != nil {
 		return err
 	}
 
 	if cs.PersistentVolume == nil {
-		return fmt.Errorf("XXX REQUEUE")
-	} else {
-		// Sync UID to ClaimRef.
-		cs.PersistentVolume.Object.Spec.ClaimRef.UID = cs.PersistentVolumeClaim.Object.GetUID()
+		eventctx.EventRecorder(ctx).Event(cs.Checkout.Object, "Warning", "VolumeAttachment", "No volume found")
 
-		if err := cs.PersistentVolume.Persist(ctx, cl); err != nil {
-			return err
-		}
+		return errmark.MarkTransient(fmt.Errorf("missing persistent volume"))
 	}
 
-	return nil
+	// Sync UID to ClaimRef.
+	cs.PersistentVolume.Object.Spec.ClaimRef.UID = cs.PersistentVolumeClaim.Object.GetUID()
+
+	return cs.PersistentVolume.Persist(ctx, cl)
 }
 
 func NewCheckoutState(c *obj.Checkout) *CheckoutState {
 	return &CheckoutState{
-		Checkout: c,
+		Checkout:              c,
+		PersistentVolumeClaim: corev1obj.NewPersistentVolumeClaim(c.Key),
 	}
 }
 

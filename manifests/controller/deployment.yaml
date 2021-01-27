@@ -10,6 +10,13 @@ spec:
       containers:
       - name: pvpool-controller
         image: ko://github.com/puppetlabs/pvpool/cmd/pvpool-controller
+        env:
+        - name: PVPOOL_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: config
+              key: debug
+              optional: true
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

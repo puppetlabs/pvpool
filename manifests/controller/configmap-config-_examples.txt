@@ -1,0 +1,6 @@
+# This section is not real configuration, but rather shows the
+# possible configuration options for the controller.
+
+# debug turns on extra verbosity in the container logs for the
+# controller pods.
+debug: "false"

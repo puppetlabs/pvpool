@@ -55,16 +55,6 @@ var _ lifecycle.Loader = &PoolReplica{}
 var _ lifecycle.Persister = &PoolReplica{}
 
 func (pr *PoolReplica) Delete(ctx context.Context, cl client.Client, opts ...lifecycle.DeleteOption) (bool, error) {
-	// We can get into a state where a Checkout has failed but managed to update
-	// the PV to Retain. In this case, we need to reset the policy.
-	if pr.PersistentVolume != nil && pr.PersistentVolume.Object.Spec.PersistentVolumeReclaimPolicy != corev1.PersistentVolumeReclaimDelete {
-		pr.PersistentVolume.Object.Spec.PersistentVolumeReclaimPolicy = corev1.PersistentVolumeReclaimDelete
-
-		if err := pr.PersistentVolume.Persist(ctx, cl); err != nil {
-			return false, err
-		}
-	}
-
 	// We have to delete the job first because its existence will block the PVC
 	// from being deleted (unless it's failed).
 	if _, err := pr.InitJob.Delete(ctx, cl, opts...); err != nil {
@@ -145,9 +135,7 @@ func (pr *PoolReplica) Persist(ctx context.Context, cl client.Client) error {
 }
 
 func (pr *PoolReplica) Stale() bool {
-	return !pr.PersistentVolumeClaim.Object.GetDeletionTimestamp().IsZero() ||
-		pr.PersistentVolumeClaim.Object.Status.Phase == corev1.ClaimLost ||
-		pr.InitJob.Failed()
+	return pr.PersistentVolumeClaim.Object.Status.Phase == corev1.ClaimLost || pr.InitJob.Failed()
 }
 
 func (pr *PoolReplica) Available() bool {

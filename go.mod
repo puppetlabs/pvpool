@@ -4,9 +4,11 @@ go 1.14
 
 require (
 	github.com/google/uuid v1.1.2
-	github.com/puppetlabs/leg/k8sutil v0.1.1-0.20210125225836-b0ab74337215
+	github.com/puppetlabs/leg/errmap v0.1.0
+	github.com/puppetlabs/leg/k8sutil v0.1.1-0.20210127070527-b1f3a4a16f6f
 	github.com/puppetlabs/leg/mainutil v0.1.2
 	github.com/puppetlabs/leg/mathutil v0.1.0
+	github.com/spf13/viper v1.7.1
 	k8s.io/api v0.19.2
 	k8s.io/apimachinery v0.20.1
 	k8s.io/client-go v0.19.2

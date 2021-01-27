@@ -16,6 +16,7 @@ import (
 
 // +kubebuilder:rbac:groups=pvpool.puppet.com,resources=checkouts,verbs=get;list;watch
 // +kubebuilder:rbac:groups=pvpool.puppet.com,resources=checkouts/status,verbs=update
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=persistentvolumes,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;delete
 

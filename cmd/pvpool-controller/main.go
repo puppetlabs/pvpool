@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 
+	"github.com/puppetlabs/leg/k8sutil/pkg/controller/eventctx"
 	"github.com/puppetlabs/leg/mainutil"
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/puppetlabs/pvpool/pkg/controller"
+	"github.com/puppetlabs/pvpool/pkg/opt"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
@@ -29,6 +32,8 @@ var (
 
 func main() {
 	os.Exit(mainutil.TrapAndWait(context.Background(), func(ctx context.Context) error {
+		cfg := opt.NewConfig()
+
 		defer klog.Flush()
 
 		flag.Parse()
@@ -36,9 +41,13 @@ func main() {
 		kfs := flag.NewFlagSet("klog", flag.ExitOnError)
 		klog.InitFlags(kfs)
 
+		if cfg.Debug {
+			_ = kfs.Set("v", "5")
+		}
+
 		s := runtime.NewScheme()
 		if err := schemes.AddToScheme(s); err != nil {
-			klog.Fatalf("failed to create scheme: %+v", err)
+			return fmt.Errorf("failed to create scheme: %w", err)
 		}
 
 		mgr, _ := manager.New(config.GetConfigOrDie(), manager.Options{
@@ -47,10 +56,10 @@ func main() {
 
 		for i, reconciler := range reconcilers {
 			if err := reconciler(mgr); err != nil {
-				klog.Fatalf("failed to add reconciler #%d: %+v", i, err)
+				return fmt.Errorf("failed to add reconciler #%d: %w", i, err)
 			}
 		}
 
-		return mgr.Start(ctx)
+		return mgr.Start(eventctx.WithEventRecorder(ctx, mgr, "pvpool-controller"))
 	}))
 }

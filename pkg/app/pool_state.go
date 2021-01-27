@@ -3,9 +3,10 @@ package app
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/puppetlabs/leg/errmap/pkg/errmark"
+	"github.com/puppetlabs/leg/k8sutil/pkg/controller/eventctx"
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	"github.com/puppetlabs/leg/mathutil/pkg/rand"
 	"github.com/puppetlabs/pvpool/pkg/obj"
@@ -139,6 +140,10 @@ func (ps *PoolState) persistStale(ctx context.Context, cl client.Client) error {
 
 		klog.InfoS("pool state: removing stale replica", "pool", ps.Pool.Key, "key", pr.PersistentVolumeClaim.Key)
 
+		if fc, ok := pr.InitJob.FailedCondition(); ok && fc.Status == corev1.ConditionTrue {
+			eventctx.EventRecorder(ctx).Eventf(ps.Pool.Object, "Warning", "StaleReplica", "Deleting stale replica with failed init job: %s: %s", fc.Reason, fc.Message)
+		}
+
 		if _, err := pr.Delete(ctx, cl); err != nil {
 			// Add back into the list since we couldn't delete it.
 			ps.Stale = append(ps.Stale, pr)
@@ -155,7 +160,7 @@ func (ps *PoolState) persistScaleUp(ctx context.Context, cl client.Client) error
 	id := uuid.New()
 	pr, err := ApplyPoolReplica(ctx, cl, ps.Pool, hex.EncodeToString(id[:]))
 	if errors.IsInvalid(err) {
-		return fmt.Errorf("XXX INVALID ERROR, USER MUST FIX: %w", err)
+		return errmark.MarkUser(err)
 	} else if err != nil {
 		return err
 	}
@@ -212,8 +217,10 @@ func (ps *PoolState) persistScale(ctx context.Context, cl client.Client) error {
 
 	switch {
 	case actual < request:
+		eventctx.EventRecorder(ctx).Eventf(ps.Pool.Object, "Normal", "PoolScaling", "Scaling pool up to %d replicas", request)
 		return ps.persistScaleUp(ctx, cl)
 	case actual > request:
+		eventctx.EventRecorder(ctx).Eventf(ps.Pool.Object, "Normal", "PoolScaling", "Scaling pool down to %d replicas", request)
 		return ps.persistScaleDown(ctx, cl)
 	default:
 		return nil
