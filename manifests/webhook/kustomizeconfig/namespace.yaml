@@ -1,0 +1,5 @@
+namespace:
+- group: admissionregistration.k8s.io
+  kind: ValidatingWebhookConfiguration
+  path: webhooks/clientConfig/service/namespace
+  create: true

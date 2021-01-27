@@ -9,12 +9,13 @@ require (
 	github.com/puppetlabs/leg/mainutil v0.1.2
 	github.com/puppetlabs/leg/mathutil v0.1.0
 	github.com/spf13/viper v1.7.1
-	k8s.io/api v0.19.2
-	k8s.io/apimachinery v0.20.1
-	k8s.io/client-go v0.19.2
+	k8s.io/api v0.20.2
+	k8s.io/apimachinery v0.20.2
+	k8s.io/client-go v0.20.2
 	k8s.io/klog/v2 v2.4.0
-	sigs.k8s.io/controller-runtime v0.7.0
+	sigs.k8s.io/controller-runtime v0.8.1
 	sigs.k8s.io/controller-tools v0.4.1
+	sigs.k8s.io/kustomize/kustomize/v3 v3.9.2
 )
 
 replace (

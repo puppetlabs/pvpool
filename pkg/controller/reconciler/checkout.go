@@ -1,10 +1,10 @@
-package controller
+package reconciler
 
 import (
 	"context"
 
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
-	"github.com/puppetlabs/pvpool/pkg/app"
+	"github.com/puppetlabs/pvpool/pkg/controller/app"
 	"github.com/puppetlabs/pvpool/pkg/obj"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"

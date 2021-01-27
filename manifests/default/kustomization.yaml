@@ -4,5 +4,6 @@ resources:
 - namespace.yaml
 - ../crd
 - ../controller
-namespace: pvpool-controller
+- ../webhook
+namespace: pvpool
 namePrefix: default-

@@ -100,7 +100,7 @@ func (pr *PoolReplica) Persist(ctx context.Context, cl client.Client) error {
 	case pr.Available():
 		// If we're in the Available phase, we can go ahead and delete the init
 		// job and not worry about it again.
-		if _, err := pr.InitJob.Delete(ctx, cl, lifecycle.DeleteWithPropagationPolicy(metav1.DeletePropagationBackground)); err != nil {
+		if _, err := pr.InitJob.Delete(ctx, cl, lifecycle.DeleteWithPropagationPolicy(metav1.DeletePropagationForeground)); err != nil {
 			return err
 		}
 

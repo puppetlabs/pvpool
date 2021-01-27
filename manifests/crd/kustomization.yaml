@@ -6,4 +6,3 @@ resources:
 commonLabels:
   app.kubernetes.io/name: pvpool
   app.kubernetes.io/component: crd
-  app.kubernetes.io/version: dev

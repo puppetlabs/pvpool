@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvpool-webhook
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      serviceAccountName: pvpool-webhook
+      containers:
+      - name: pvpool-webhook
+        image: ko://github.com/puppetlabs/pvpool/cmd/pvpool-webhook
+        env:
+        - name: PVPOOL_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: config
+              key: debug
+              optional: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [all]
+          runAsUser: 65532
+          runAsGroup: 65532
+        ports:
+        - name: https
+          containerPort: 8443
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: https
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
