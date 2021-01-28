@@ -10,6 +10,7 @@ require (
 	github.com/puppetlabs/leg/mainutil v0.1.2
 	github.com/puppetlabs/leg/mathutil v0.1.0
 	github.com/spf13/viper v1.7.1
+	github.com/stretchr/testify v1.7.0
 	gotest.tools/gotestsum v1.6.1
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2

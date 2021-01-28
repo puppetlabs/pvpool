@@ -82,6 +82,12 @@ func (ps *PoolState) Load(ctx context.Context, cl client.Client) (bool, error) {
 			continue
 		}
 
+		// Check ownership. It's possible that we could be competing with
+		// another controller with the same selector.
+		if ctrl := metav1.GetControllerOf(pr.PersistentVolumeClaim.Object); ctrl != nil && ctrl.UID != ps.Pool.Object.GetUID() {
+			continue
+		}
+
 		switch {
 		case pr.Stale():
 			ps.Stale = append(ps.Stale, pr)
