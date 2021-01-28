@@ -14,7 +14,7 @@ export SHELLCHECK ?= shellcheck
 # Variables
 #
 
-export PVPOOL_VERSION ?= $(shell $(GIT) describe --tags --always --dirty)
+PVPOOL_VERSION ?= $(shell $(GIT) describe --tags --always --dirty)
 
 export KO_DOCKER_REPO ?= ko.local
 export GOFLAGS ?=
@@ -50,7 +50,7 @@ build: build-manifest-release build-manifest-debug
 
 .PHONY: apply
 apply: build
-	$(KUBECTL) apply -f $(ARTIFACTS_DIR)/release.yaml
+	$(KUBECTL) apply -f $(ARTIFACTS_DIR)/release.yaml --prune -l app.kubernetes.io/name=pvpool
 
 .PHONY: check
 check: generate

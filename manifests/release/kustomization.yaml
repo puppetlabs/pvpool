@@ -9,6 +9,8 @@ transformers:
 - kustomizeconfig/label-version.yaml
 namespace: pvpool
 namePrefix: default-
+commonLabels:
+  app.kubernetes.io/name: pvpool
 configMapGenerator:
 - name: pvpool-environment
   envs:
