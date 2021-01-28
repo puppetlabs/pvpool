@@ -7,19 +7,22 @@ spec:
   template:
     metadata:
       annotations:
+        pvpool.puppet.com/debug: "false"
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       serviceAccountName: pvpool-webhook
+      volumes:
+      - name: pvpool-webhook-certificate
+        secret:
+          secretName: pvpool-webhook-certificate
       containers:
       - name: pvpool-webhook
         image: ko://github.com/puppetlabs/pvpool/cmd/pvpool-webhook
         env:
         - name: PVPOOL_DEBUG
           valueFrom:
-            configMapKeyRef:
-              name: config
-              key: debug
-              optional: true
+            fieldRef:
+              fieldPath: "metadata.annotations['pvpool.puppet.com/debug']"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -45,3 +48,7 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 5
+        volumeMounts:
+        - name: pvpool-webhook-certificate
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true

@@ -5,10 +5,6 @@ resources:
 - serviceaccount.yaml
 - clusterrolebinding.yaml
 - deployment.yaml
-configMapGenerator:
-- name: config
-  files:
-  - _examples=configmap-config-_examples.txt
 configurations:
 - kustomizeconfig/nameprefix.yaml
 commonLabels:

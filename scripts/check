@@ -21,5 +21,7 @@ echo "check: shellcheck"
 echo "check: lint"
 $GO run github.com/golangci/golangci-lint/cmd/golangci-lint run
 
-echo "check: kustomize"
-$GO run sigs.k8s.io/kustomize/kustomize/v3 build manifests/default >/dev/null
+for manifest in manifests/*; do
+  echo "check: kustomize: ${manifest}"
+  $GO run sigs.k8s.io/kustomize/kustomize/v3 build "${manifest}" >/dev/null
+done

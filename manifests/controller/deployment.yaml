@@ -5,6 +5,9 @@ metadata:
 spec:
   replicas: 1
   template:
+    metadata:
+      annotations:
+        pvpool.puppet.com/debug: "false"
     spec:
       serviceAccountName: pvpool-controller
       containers:
@@ -13,10 +16,8 @@ spec:
         env:
         - name: PVPOOL_DEBUG
           valueFrom:
-            configMapKeyRef:
-              name: config
-              key: debug
-              optional: true
+            fieldRef:
+              fieldPath: "metadata.annotations['pvpool.puppet.com/debug']"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
