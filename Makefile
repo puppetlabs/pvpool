@@ -47,17 +47,17 @@ generate: $(ARTIFACTS_DIR)
 .PHONY: $(BUILD_MANIFEST_TARGETS)
 $(BUILD_MANIFEST_TARGETS): build-manifest-%: generate
 	$(GO) run sigs.k8s.io/kustomize/kustomize/v3 build manifests/$* \
-		| $(KO) resolve -f - >$(ARTIFACTS_DIR)/$*.yaml
+		| $(KO) resolve -f - >$(ARTIFACTS_DIR)/pvpool-$*-$(PVPOOL_VERSION).yaml
 
 .PHONY: build
 build: build-manifest-release build-manifest-debug
 
 .PHONY: $(APPLY_MANIFEST_TARGETS)
 $(APPLY_MANIFEST_TARGETS): apply-%: build-manifest-%
-	$(KUBECTL) apply -f $(ARTIFACTS_DIR)/$*.yaml --prune -l app.kubernetes.io/name=pvpool
+	$(KUBECTL) apply -f $(ARTIFACTS_DIR)/pvpool-$*-$(PVPOOL_VERSION).yaml --prune -l app.kubernetes.io/name=pvpool
 
 .PHONY: apply
-apply: apply-release
+apply: apply-debug
 
 .PHONY: check
 check: generate
@@ -69,7 +69,8 @@ test: generate
 	scripts/test
 else
 test: export KUBECONFIG := $(PVPOOL_TEST_E2E_KUBECONFIG)
-test: apply-debug
+test: apply-test
+	$(KUBECTL) wait --timeout=180s -n local-path-storage --for=condition=available deployments --all
 	$(KUBECTL) wait --timeout=180s -n pvpool --for=condition=available deployments --all
 	scripts/test
 endif

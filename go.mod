@@ -6,7 +6,7 @@ require (
 	github.com/golangci/golangci-lint v1.36.0
 	github.com/google/uuid v1.1.2
 	github.com/puppetlabs/leg/errmap v0.1.0
-	github.com/puppetlabs/leg/k8sutil v0.1.1-0.20210127070527-b1f3a4a16f6f
+	github.com/puppetlabs/leg/k8sutil v0.1.1-0.20210129194109-f5cb96b0bf5b
 	github.com/puppetlabs/leg/mainutil v0.1.2
 	github.com/puppetlabs/leg/mathutil v0.1.0
 	github.com/spf13/viper v1.7.1

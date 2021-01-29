@@ -3,7 +3,7 @@ kind: AnnotationsTransformer
 metadata:
   name: deployment
 annotations:
-  pvpool.puppet.com/debug: "true"
+  pvpool.puppet.com/config.debug: "true"
 fieldSpecs:
 - group: apps
   kind: Deployment

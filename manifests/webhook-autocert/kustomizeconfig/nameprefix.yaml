@@ -1,0 +1,4 @@
+namePrefix:
+- group: apps
+  kind: Deployment
+  path: 'spec/template/metadata/annotations/pvpool.puppet.com\/config.webhook-certificate-secret-name'

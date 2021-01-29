@@ -1,0 +1,35 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pvpool-webhook-certificate-controller
+subjects:
+- kind: ServiceAccount
+  name: pvpool-webhook-certificate-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pvpool-webhook-certificate-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pvpool-webhook-certificate-selfsignedsecret-controller
+subjects:
+- kind: ServiceAccount
+  name: pvpool-webhook-certificate-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: selfsignedsecret-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pvpool-webhook-certificate-webhookcert-controller
+subjects:
+- kind: ServiceAccount
+  name: pvpool-webhook-certificate-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: webhookcert-controller

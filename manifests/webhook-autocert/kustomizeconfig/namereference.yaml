@@ -1,0 +1,12 @@
+nameReference:
+- kind: Service
+  fieldSpecs:
+  - group: apps
+    kind: Deployment
+    path: 'spec/template/metadata/annotations/pvpool.puppet.com\/config.webhook-service-name'
+- group: admissionregistration.k8s.io
+  kind: ValidatingWebhookConfiguration
+  fieldSpecs:
+  - group: apps
+    kind: Deployment
+    path: 'spec/template/metadata/annotations/pvpool.puppet.com\/config.validating-webhook-configuration-name'

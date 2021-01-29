@@ -4,11 +4,16 @@ metadata:
   name: pvpool-webhook
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      pvpool.puppet.com/selector: pvpool-webhook
   template:
     metadata:
       annotations:
-        pvpool.puppet.com/debug: "false"
+        pvpool.puppet.com/config.debug: "false"
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+      labels:
+        pvpool.puppet.com/selector: pvpool-webhook
     spec:
       serviceAccountName: pvpool-webhook
       volumes:
@@ -22,7 +27,15 @@ spec:
         - name: PVPOOL_DEBUG
           valueFrom:
             fieldRef:
-              fieldPath: "metadata.annotations['pvpool.puppet.com/debug']"
+              fieldPath: "metadata.annotations['pvpool.puppet.com/config.debug']"
+        - name: PVPOOL_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: PVPOOL_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

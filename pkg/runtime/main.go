@@ -21,10 +21,8 @@ var schemes = runtime.NewSchemeBuilder(
 	pvpoolv1alpha1.AddToScheme,
 )
 
-func Main(name string, transforms ...func(mgr manager.Manager) error) int {
+func Main(cfg *opt.Config, opts manager.Options, transforms ...func(mgr manager.Manager) error) int {
 	return mainutil.TrapAndWait(context.Background(), func(ctx context.Context) error {
-		cfg := opt.NewConfig()
-
 		defer klog.Flush()
 
 		flag.Parse()
@@ -36,14 +34,19 @@ func Main(name string, transforms ...func(mgr manager.Manager) error) int {
 			_ = kfs.Set("v", "5")
 		}
 
-		s := runtime.NewScheme()
-		if err := schemes.AddToScheme(s); err != nil {
-			return fmt.Errorf("failed to create scheme: %w", err)
+		if opts.Scheme == nil {
+			s := runtime.NewScheme()
+			if err := schemes.AddToScheme(s); err != nil {
+				return fmt.Errorf("failed to create scheme: %w", err)
+			}
+
+			opts.Scheme = s
 		}
 
-		mgr, _ := manager.New(config.GetConfigOrDie(), manager.Options{
-			Scheme: s,
-		})
+		mgr, err := manager.New(config.GetConfigOrDie(), opts)
+		if err != nil {
+			return fmt.Errorf("failed to create manager: %w", err)
+		}
 
 		for i, transform := range transforms {
 			if err := transform(mgr); err != nil {
@@ -51,6 +54,6 @@ func Main(name string, transforms ...func(mgr manager.Manager) error) int {
 			}
 		}
 
-		return mgr.Start(eventctx.WithEventRecorder(ctx, mgr, name))
+		return mgr.Start(eventctx.WithEventRecorder(ctx, mgr, cfg.Name))
 	})
 }

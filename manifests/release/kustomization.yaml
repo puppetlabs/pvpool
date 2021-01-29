@@ -4,7 +4,7 @@ resources:
 - namespace.yaml
 - ../crd
 - ../controller
-- ../webhook
+- ../webhook-autocert
 transformers:
 - kustomizeconfig/label-version.yaml
 namespace: pvpool
