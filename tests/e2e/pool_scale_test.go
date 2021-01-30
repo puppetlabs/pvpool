@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
-	"github.com/puppetlabs/leg/timeutil/pkg/retry"
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/puppetlabs/pvpool/pkg/obj"
 	"github.com/stretchr/testify/require"
@@ -50,7 +49,7 @@ func TestPoolScaleUpDown(t *testing.T) {
 			}
 			require.NoError(t, p.Persist(ctx, eit.ControllerClient))
 
-			require.NoError(t, retry.Wait(ctx, func(ctx context.Context) (bool, error) {
+			require.NoError(t, Wait(ctx, func(ctx context.Context) (bool, error) {
 				if _, err := (lifecycle.RequiredLoader{Loader: p}).Load(ctx, eit.ControllerClient); err != nil {
 					return true, err
 				}
@@ -65,7 +64,7 @@ func TestPoolScaleUpDown(t *testing.T) {
 			p.Object.Spec.Replicas = func(i int32) *int32 { return &i }(2)
 			require.NoError(t, p.Persist(ctx, eit.ControllerClient))
 
-			require.NoError(t, retry.Wait(ctx, func(ctx context.Context) (bool, error) {
+			require.NoError(t, Wait(ctx, func(ctx context.Context) (bool, error) {
 				if _, err := (lifecycle.RequiredLoader{Loader: p}).Load(ctx, eit.ControllerClient); err != nil {
 					return true, err
 				}

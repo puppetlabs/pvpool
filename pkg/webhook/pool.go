@@ -61,11 +61,15 @@ func AddPoolValidatorToManager(mgr manager.Manager) error {
 		"/validate-pvpool-puppet-com-v1alpha1-pool",
 		admission.ValidatingWebhookFor(&PoolValidator{}),
 	)
-	mgr.AddHealthzCheck("pool", func(_ *http.Request) error {
+	if err := mgr.AddHealthzCheck("pool", func(_ *http.Request) error {
 		return nil
-	})
-	mgr.AddReadyzCheck("pool", func(_ *http.Request) error {
+	}); err != nil {
+		return err
+	}
+	if err := mgr.AddReadyzCheck("pool", func(_ *http.Request) error {
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }

@@ -120,11 +120,15 @@ func AddCheckoutValidatorToManager(mgr manager.Manager) error {
 		"/validate-pvpool-puppet-com-v1alpha1-checkout",
 		&admission.Webhook{Handler: hnd},
 	)
-	mgr.AddHealthzCheck("checkout", func(_ *http.Request) error {
+	if err := mgr.AddHealthzCheck("checkout", func(_ *http.Request) error {
 		return nil
-	})
-	mgr.AddReadyzCheck("checkout", func(_ *http.Request) error {
+	}); err != nil {
+		return err
+	}
+	if err := mgr.AddReadyzCheck("checkout", func(_ *http.Request) error {
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
 	return nil
 }
