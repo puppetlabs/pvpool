@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"fmt"
+	"net/http"
 
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/validation"
@@ -56,6 +57,15 @@ func (pv *PoolValidator) ValidateDelete() error {
 }
 
 func AddPoolValidatorToManager(mgr manager.Manager) error {
-	mgr.GetWebhookServer().Register("/validate-pvpool-puppet-com-v1alpha1-pool", admission.ValidatingWebhookFor(&PoolValidator{}))
+	mgr.GetWebhookServer().Register(
+		"/validate-pvpool-puppet-com-v1alpha1-pool",
+		admission.ValidatingWebhookFor(&PoolValidator{}),
+	)
+	mgr.AddHealthzCheck("pool", func(_ *http.Request) error {
+		return nil
+	})
+	mgr.AddReadyzCheck("pool", func(_ *http.Request) error {
+		return nil
+	})
 	return nil
 }

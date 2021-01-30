@@ -12,7 +12,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -33,6 +35,8 @@ func Main(cfg *opt.Config, opts manager.Options, transforms ...func(mgr manager.
 		if cfg.Debug {
 			_ = kfs.Set("v", "5")
 		}
+
+		log.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
 
 		if opts.Scheme == nil {
 			s := runtime.NewScheme()

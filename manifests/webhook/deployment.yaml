@@ -16,10 +16,6 @@ spec:
         pvpool.puppet.com/selector: pvpool-webhook
     spec:
       serviceAccountName: pvpool-webhook
-      volumes:
-      - name: pvpool-webhook-certificate
-        secret:
-          secretName: pvpool-webhook-certificate
       containers:
       - name: pvpool-webhook
         image: ko://github.com/puppetlabs/pvpool/cmd/pvpool-webhook
@@ -44,24 +40,22 @@ spec:
           runAsGroup: 65532
         ports:
         - name: https
-          containerPort: 8443
+          containerPort: 9443
+        - name: probes
+          containerPort: 8000
         livenessProbe:
           httpGet:
             path: /healthz
-            port: https
-            scheme: HTTPS
+            port: probes
+            scheme: HTTP
           initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
             path: /readyz
-            port: https
-            scheme: HTTPS
+            port: probes
+            scheme: HTTP
           initialDelaySeconds: 5
           periodSeconds: 10
           timeoutSeconds: 5
-        volumeMounts:
-        - name: pvpool-webhook-certificate
-          mountPath: /tmp/k8s-webhook-server/serving-certs
-          readOnly: true

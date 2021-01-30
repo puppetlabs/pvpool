@@ -14,7 +14,9 @@ func main() {
 
 	os.Exit(runtime.Main(
 		cfg,
-		manager.Options{},
+		manager.Options{
+			HealthProbeBindAddress: ":8000",
+		},
 		webhook.AddCheckoutValidatorToManager,
 		webhook.AddPoolValidatorToManager,
 	))

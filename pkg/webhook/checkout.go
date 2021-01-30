@@ -1,6 +1,8 @@
 package webhook
 
 import (
+	"net/http"
+
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -32,6 +34,15 @@ func (cv *CheckoutValidator) ValidateDelete() error {
 }
 
 func AddCheckoutValidatorToManager(mgr manager.Manager) error {
-	mgr.GetWebhookServer().Register("/validate-pvpool-puppet-com-v1alpha1-checkout", admission.ValidatingWebhookFor(&CheckoutValidator{}))
+	mgr.GetWebhookServer().Register(
+		"/validate-pvpool-puppet-com-v1alpha1-checkout",
+		admission.ValidatingWebhookFor(&CheckoutValidator{}),
+	)
+	mgr.AddHealthzCheck("checkout", func(_ *http.Request) error {
+		return nil
+	})
+	mgr.AddReadyzCheck("checkout", func(_ *http.Request) error {
+		return nil
+	})
 	return nil
 }
