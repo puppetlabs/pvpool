@@ -7,20 +7,42 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/puppetlabs/leg/k8sutil/pkg/test/endtoend"
+	"github.com/puppetlabs/leg/timeutil/pkg/backoff"
+	"github.com/puppetlabs/leg/timeutil/pkg/retry"
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/v2/klogr"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var schemes = runtime.NewSchemeBuilder(
-	scheme.AddToScheme,
-	pvpoolv1alpha1.AddToScheme,
+var (
+	schemes = runtime.NewSchemeBuilder(
+		scheme.AddToScheme,
+		pvpoolv1alpha1.AddToScheme,
+	)
+
+	backoffFactory = backoff.Build(
+		backoff.Exponential(250*time.Millisecond, 2.0),
+		backoff.MaxBound(5*time.Second),
+		backoff.FullJitter(),
+		backoff.NonSliding,
+	)
 )
+
+func init() {
+	log.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
+}
+
+func Wait(ctx context.Context, work retry.WorkFunc) error {
+	return retry.Wait(ctx, work, retry.WithBackoffFactory(backoffFactory))
+}
 
 type EnvironmentInTest struct {
 	*endtoend.Environment
