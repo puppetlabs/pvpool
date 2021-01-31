@@ -30,10 +30,11 @@ func init() {
 
 type EnvironmentInTest struct {
 	*endtoend.Environment
-	Labels      map[string]string
-	PoolHelpers *PoolHelpers
-	t           *testing.T
-	nf          endtoend.NamespaceFactory
+	Labels          map[string]string
+	PoolHelpers     *PoolHelpers
+	CheckoutHelpers *CheckoutHelpers
+	t               *testing.T
+	nf              endtoend.NamespaceFactory
 }
 
 func (eit *EnvironmentInTest) WithNamespace(ctx context.Context, fn func(ns *corev1.Namespace)) {
@@ -72,9 +73,8 @@ func WithEnvironmentInTest(t *testing.T, fn func(eit *EnvironmentInTest)) {
 			t:           t,
 			nf:          endtoend.NewTestNamespaceFactory(t, endtoend.NamespaceWithLabels(ls)),
 		}
-		eit.PoolHelpers = &PoolHelpers{
-			eit: eit,
-		}
+		eit.PoolHelpers = &PoolHelpers{eit: eit}
+		eit.CheckoutHelpers = &CheckoutHelpers{eit: eit}
 		fn(eit)
 	}))
 }
