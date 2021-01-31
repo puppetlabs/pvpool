@@ -14,7 +14,9 @@ func main() {
 
 	os.Exit(runtime.Main(
 		cfg,
-		manager.Options{},
+		manager.Options{
+			LeaderElection: true,
+		},
 		reconciler.AddCheckoutReconcilerToManager,
 		reconciler.AddPoolReconcilerToManager,
 	))

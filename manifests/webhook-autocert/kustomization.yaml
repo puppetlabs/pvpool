@@ -2,35 +2,18 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - ../webhook
-- external
-- role.yaml
-- serviceaccount.yaml
-- clusterrolebinding.yaml
-- rolebinding.yaml
-- deployment.yaml
+- ../webhook-certificate-controller
 configurations:
 - kustomizeconfig/nameprefix.yaml
 - kustomizeconfig/namereference.yaml
-commonLabels:
-  app.kubernetes.io/name: pvpool
-  app.kubernetes.io/component: webhook-autocert
-  app.kubernetes.io/instance: pvpool-webhook-autocert
-patchesStrategicMerge:
-- |-
-  apiVersion: apps/v1
-  kind: Deployment
-  metadata:
-    name: pvpool-webhook
-  spec:
-    template:
-      spec:
-        volumes:
-        - name: pvpool-webhook-certificate
-          secret:
-            secretName: pvpool-webhook-certificate
-        containers:
-        - name: pvpool-webhook
-          volumeMounts:
-          - name: pvpool-webhook-certificate
-            mountPath: /tmp/k8s-webhook-server/serving-certs
-            readOnly: true
+configMapGenerator:
+- name: pvpool-webhook-config
+  behavior: merge
+  literals:
+  - certificate-secret-name=pvpool-webhook-certificate
+- name: pvpool-webhook-certificate-controller-config
+  behavior: merge
+  literals:
+  - certificate-secret-name=pvpool-webhook-certificate
+  - service-name=webhook-service
+  - validating-webhook-configuration-name=validating-webhook-configuration

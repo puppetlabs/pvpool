@@ -11,6 +11,7 @@ import (
 	"github.com/puppetlabs/pvpool/pkg/opt"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -46,6 +47,13 @@ func Main(cfg *opt.Config, opts manager.Options, transforms ...func(mgr manager.
 
 			opts.Scheme = s
 		}
+
+		// These are always overridden by us, but turning on leader election is
+		// up to the caller.
+		opts.LeaderElectionResourceLock = resourcelock.LeasesResourceLock
+		opts.LeaderElectionID = fmt.Sprintf("%s.lease.pvpool.puppet.com", cfg.Name)
+		opts.LeaderElectionNamespace = cfg.Namespace
+		opts.LeaderElectionReleaseOnCancel = true
 
 		mgr, err := manager.New(config.GetConfigOrDie(), opts)
 		if err != nil {

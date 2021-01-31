@@ -135,7 +135,9 @@ func (pr *PoolReplica) Persist(ctx context.Context, cl client.Client) error {
 }
 
 func (pr *PoolReplica) Stale() bool {
-	return pr.PersistentVolumeClaim.Object.Status.Phase == corev1.ClaimLost || pr.InitJob.Failed()
+	return !pr.PersistentVolumeClaim.Object.GetDeletionTimestamp().IsZero() ||
+		pr.PersistentVolumeClaim.Object.Status.Phase == corev1.ClaimLost ||
+		pr.InitJob.Failed()
 }
 
 func (pr *PoolReplica) Available() bool {

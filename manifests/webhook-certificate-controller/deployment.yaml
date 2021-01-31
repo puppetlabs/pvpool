@@ -9,11 +9,6 @@ spec:
       pvpool.puppet.com/selector: pvpool-webhook-certificate-controller
   template:
     metadata:
-      annotations:
-        pvpool.puppet.com/config.debug: "false"
-        pvpool.puppet.com/config.webhook-service-name: webhook-service
-        pvpool.puppet.com/config.webhook-certificate-secret-name: pvpool-webhook-certificate
-        pvpool.puppet.com/config.validating-webhook-configuration-name: validating-webhook-configuration
       labels:
         pvpool.puppet.com/selector: pvpool-webhook-certificate-controller
     spec:
@@ -24,28 +19,33 @@ spec:
         env:
         - name: PVPOOL_DEBUG
           valueFrom:
-            fieldRef:
-              fieldPath: "metadata.annotations['pvpool.puppet.com/config.debug']"
+            configMapKeyRef:
+              name: pvpool-webhook-certificate-controller-config
+              key: debug
+              optional: true
         - name: PVPOOL_NAME
           valueFrom:
             fieldRef:
-              fieldPath: metadata.name
+              fieldPath: "metadata.labels['app.kubernetes.io/instance']"
         - name: PVPOOL_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
         - name: PVPOOL_WEBHOOK_SERVICE_NAME
           valueFrom:
-            fieldRef:
-              fieldPath: "metadata.annotations['pvpool.puppet.com/config.webhook-service-name']"
+            configMapKeyRef:
+              name: pvpool-webhook-certificate-controller-config
+              key: service-name
         - name: PVPOOL_WEBHOOK_CERTIFICATE_SECRET_NAME
           valueFrom:
-            fieldRef:
-              fieldPath: "metadata.annotations['pvpool.puppet.com/config.webhook-certificate-secret-name']"
+            configMapKeyRef:
+              name: pvpool-webhook-certificate-controller-config
+              key: certificate-secret-name
         - name: PVPOOL_VALIDATING_WEBHOOK_CONFIGURATION_NAME
           valueFrom:
-            fieldRef:
-              fieldPath: "metadata.annotations['pvpool.puppet.com/config.validating-webhook-configuration-name']"
+            configMapKeyRef:
+              name: pvpool-webhook-certificate-controller-config
+              key: validating-webhook-configuration-name
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

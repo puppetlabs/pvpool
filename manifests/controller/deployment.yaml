@@ -3,14 +3,12 @@ kind: Deployment
 metadata:
   name: pvpool-controller
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       pvpool.puppet.com/selector: pvpool-controller
   template:
     metadata:
-      annotations:
-        pvpool.puppet.com/config.debug: "false"
       labels:
         pvpool.puppet.com/selector: pvpool-controller
     spec:
@@ -21,12 +19,14 @@ spec:
         env:
         - name: PVPOOL_DEBUG
           valueFrom:
-            fieldRef:
-              fieldPath: "metadata.annotations['pvpool.puppet.com/config.debug']"
+            configMapKeyRef:
+              name: pvpool-controller-config
+              key: debug
+              optional: true
         - name: PVPOOL_NAME
           valueFrom:
             fieldRef:
-              fieldPath: metadata.name
+              fieldPath: "metadata.labels['app.kubernetes.io/instance']"
         - name: PVPOOL_NAMESPACE
           valueFrom:
             fieldRef:

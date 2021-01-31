@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	cfg := opt.NewConfig("pvpool-webhook")
+	cfg := opt.NewConfig("pvpool-webhook-certificate-controller")
 
 	secretKey := client.ObjectKey{
 		Namespace: cfg.Namespace,
@@ -27,7 +27,8 @@ func main() {
 	os.Exit(runtime.Main(
 		cfg,
 		manager.Options{
-			Namespace: cfg.Namespace,
+			LeaderElection: true,
+			Namespace:      cfg.Namespace,
 		},
 		func(mgr manager.Manager) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

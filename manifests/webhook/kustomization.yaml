@@ -10,6 +10,21 @@ resources:
 configurations:
 - kustomizeconfig/namereference.yaml
 - kustomizeconfig/namespace.yaml
+- kustomizeconfig/varreference.yaml
+configMapGenerator:
+- name: pvpool-webhook-config
+  files:
+  - _examples=configmap-config-_examples.txt
+  literals:
+  - certificate-secret-name=
+vars:
+- name: PVPOOL_WEBHOOK_CERTIFICATE_SECRET_NAME
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pvpool-webhook-config
+  fieldref:
+    fieldpath: data.certificate-secret-name
 commonLabels:
   app.kubernetes.io/name: pvpool
   app.kubernetes.io/component: webhook

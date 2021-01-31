@@ -1,8 +1,8 @@
 namePrefix:
-- group: apps
-  kind: Deployment
-  path: 'spec/template/metadata/annotations/pvpool.puppet.com\/config.webhook-certificate-secret-name'
-- group: apps
-  kind: Deployment
-  name: pvpool-webhook
-  path: 'spec/template/spec/volumes/secret/secretName'
+- kind: ConfigMap
+  name: pvpool-webhook-config
+  path: data/certificate-secret-name
+namePrefix:
+- kind: ConfigMap
+  name: pvpool-webhook-certificate-controller-config
+  path: data/certificate-secret-name

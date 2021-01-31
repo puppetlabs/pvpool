@@ -2,5 +2,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - ../release
-transformers:
-- kustomizeconfig/annotations-deployment.yaml
+configMapGenerator:
+- name: pvpool-controller-config
+  behavior: merge
+  literals:
+  - debug=true
+configMapGenerator:
+- name: pvpool-webhook-config
+  behavior: merge
+  literals:
+  - debug=true

@@ -1,0 +1,19 @@
+# This section is not real configuration, but rather shows the
+# possible configuration options for the webhook certificate
+# controller.
+
+# debug turns on extra verbosity in the container logs for the
+# controller pods.
+debug: "false"
+
+# certificate-secret-name is the name of the Secret that contains the
+# TLS certificate for the webhook server.
+certificate-secret-name: ""
+
+# service-name is the name of the Service for which the TLS
+# certificate should be generated.
+service-name: ""
+
+# validating-webhook-configuration-name is the name of the
+# ValidatingWebhookConfiguration to install the CA bundle into.
+validating-webhook-configuration-name: ""
