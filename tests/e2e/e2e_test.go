@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -39,6 +40,21 @@ type EnvironmentInTest struct {
 
 func (eit *EnvironmentInTest) WithNamespace(ctx context.Context, fn func(ns *corev1.Namespace)) {
 	require.NoError(eit.t, endtoend.WithNamespace(ctx, eit.Environment, eit.nf, fn))
+}
+
+func (eit *EnvironmentInTest) Impersonate(ic rest.ImpersonationConfig) *EnvironmentInTest {
+	e, err := eit.Environment.Impersonate(ic)
+	require.NoError(eit.t, err)
+
+	ceit := &EnvironmentInTest{
+		Environment: e,
+		Labels:      eit.Labels,
+		t:           eit.t,
+		nf:          eit.nf,
+	}
+	ceit.PoolHelpers = &PoolHelpers{eit: ceit}
+	ceit.CheckoutHelpers = &CheckoutHelpers{eit: ceit}
+	return ceit
 }
 
 func WithEnvironmentInTest(t *testing.T, fn func(eit *EnvironmentInTest)) {

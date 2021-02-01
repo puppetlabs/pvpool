@@ -25,8 +25,8 @@ func TestPoolScaleUpDown(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test",
 			}
-			p := eit.PoolHelpers.CreatePoolThenWaitSettled(ctx, key, CreatePoolWithReplicas(3))
-			eit.PoolHelpers.ScalePoolThenWaitSettled(ctx, p, 2)
+			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, key, CreatePoolWithReplicas(3))
+			_ = eit.PoolHelpers.RequireScalePoolThenWaitSettled(ctx, p, 2)
 		})
 	})
 }
@@ -44,7 +44,7 @@ func TestPoolPVCReplacement(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test",
 			}
-			p := eit.PoolHelpers.CreatePoolThenWaitSettled(ctx, key, CreatePoolWithReplicas(3))
+			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, key, CreatePoolWithReplicas(3))
 
 			ps := app.NewPoolState(p)
 			ok, err := ps.Load(ctx, eit.ControllerClient)

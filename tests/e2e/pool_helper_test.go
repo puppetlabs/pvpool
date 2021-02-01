@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,10 +19,14 @@ type PoolHelpers struct {
 	eit *EnvironmentInTest
 }
 
-func (ph *PoolHelpers) WaitSettled(ctx context.Context, p *obj.Pool) *obj.Pool {
-	require.NoError(ph.eit.t, Wait(ctx, func(ctx context.Context) (bool, error) {
+func (ph *PoolHelpers) WaitSettled(ctx context.Context, p *obj.Pool) (*obj.Pool, error) {
+	err := Wait(ctx, func(ctx context.Context) (bool, error) {
 		if _, err := (lifecycle.RequiredLoader{Loader: p}).Load(ctx, ph.eit.ControllerClient); err != nil {
 			return true, err
+		}
+
+		if p.Object.Status.ObservedGeneration != p.Object.GetGeneration() {
+			return false, fmt.Errorf("pool status is for generation %d, but pool has updated to generation %d", p.Object.Status.ObservedGeneration, p.Object.GetGeneration())
 		}
 
 		var request int32 = 1
@@ -39,12 +44,23 @@ func (ph *PoolHelpers) WaitSettled(ctx context.Context, p *obj.Pool) *obj.Pool {
 		default:
 			return true, nil
 		}
-	}))
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+func (ph *PoolHelpers) RequireWaitSettled(ctx context.Context, p *obj.Pool) *obj.Pool {
+	p, err := ph.WaitSettled(ctx, p)
+	require.NoError(ph.eit.t, err)
 	return p
 }
 
 type CreatePoolOptions struct {
 	Replicas *int32
+	InitJob  *pvpoolv1alpha1.MountJob
 }
 
 type CreatePoolOption interface {
@@ -57,6 +73,14 @@ func (o *CreatePoolOptions) ApplyOptions(opts []CreatePoolOption) {
 	}
 }
 
+type CreatePoolOptionFunc func(target *CreatePoolOptions)
+
+var _ CreatePoolOption = CreatePoolOptionFunc(nil)
+
+func (of CreatePoolOptionFunc) ApplyToCreatePoolOptions(target *CreatePoolOptions) {
+	of(target)
+}
+
 type CreatePoolWithReplicas int32
 
 var _ CreatePoolOption = CreatePoolWithReplicas(0)
@@ -65,7 +89,13 @@ func (wr CreatePoolWithReplicas) ApplyToCreatePoolOptions(target *CreatePoolOpti
 	target.Replicas = (*int32)(&wr)
 }
 
-func (ph *PoolHelpers) CreatePool(ctx context.Context, key client.ObjectKey, opts ...CreatePoolOption) *obj.Pool {
+func CreatePoolWithInitJob(j *pvpoolv1alpha1.MountJob) CreatePoolOption {
+	return CreatePoolOptionFunc(func(target *CreatePoolOptions) {
+		target.InitJob = j
+	})
+}
+
+func (ph *PoolHelpers) CreatePool(ctx context.Context, key client.ObjectKey, opts ...CreatePoolOption) (*obj.Pool, error) {
 	o := &CreatePoolOptions{}
 	o.ApplyOptions(opts)
 
@@ -84,7 +114,7 @@ func (ph *PoolHelpers) CreatePool(ctx context.Context, key client.ObjectKey, opt
 				},
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
-				StorageClassName: func(s string) *string { return &s }("local-path"),
+				StorageClassName: pointer.StringPtr("local-path"),
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("10Mi"),
@@ -92,22 +122,58 @@ func (ph *PoolHelpers) CreatePool(ctx context.Context, key client.ObjectKey, opt
 				},
 			},
 		},
+		InitJob: o.InitJob,
 	}
-	require.NoError(ph.eit.t, p.Persist(ctx, ph.eit.ControllerClient))
+	if err := p.Persist(ctx, ph.eit.ControllerClient); err != nil {
+		return nil, err
+	}
 
+	return p, nil
+}
+
+func (ph *PoolHelpers) RequireCreatePool(ctx context.Context, key client.ObjectKey, opts ...CreatePoolOption) *obj.Pool {
+	p, err := ph.CreatePool(ctx, key, opts...)
+	require.NoError(ph.eit.t, err)
 	return p
 }
 
-func (ph *PoolHelpers) CreatePoolThenWaitSettled(ctx context.Context, key client.ObjectKey, opts ...CreatePoolOption) *obj.Pool {
-	return ph.WaitSettled(ctx, ph.CreatePool(ctx, key, opts...))
+func (ph *PoolHelpers) CreatePoolThenWaitSettled(ctx context.Context, key client.ObjectKey, opts ...CreatePoolOption) (*obj.Pool, error) {
+	p, err := ph.CreatePool(ctx, key, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return ph.WaitSettled(ctx, p)
 }
 
-func (ph *PoolHelpers) ScalePool(ctx context.Context, p *obj.Pool, replicas int32) *obj.Pool {
+func (ph *PoolHelpers) RequireCreatePoolThenWaitSettled(ctx context.Context, key client.ObjectKey, opts ...CreatePoolOption) *obj.Pool {
+	return ph.RequireWaitSettled(ctx, ph.RequireCreatePool(ctx, key, opts...))
+}
+
+func (ph *PoolHelpers) ScalePool(ctx context.Context, p *obj.Pool, replicas int32) (*obj.Pool, error) {
 	p.Object.Spec.Replicas = &replicas
-	require.NoError(ph.eit.t, p.Persist(ctx, ph.eit.ControllerClient))
+	if err := p.Persist(ctx, ph.eit.ControllerClient); err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+func (ph *PoolHelpers) RequireScalePool(ctx context.Context, p *obj.Pool, replicas int32) *obj.Pool {
+	p, err := ph.ScalePool(ctx, p, replicas)
+	require.NoError(ph.eit.t, err)
 	return p
 }
 
-func (ph *PoolHelpers) ScalePoolThenWaitSettled(ctx context.Context, p *obj.Pool, replicas int32) *obj.Pool {
-	return ph.WaitSettled(ctx, ph.ScalePool(ctx, p, replicas))
+func (ph *PoolHelpers) ScalePoolThenWaitSettled(ctx context.Context, p *obj.Pool, replicas int32) (*obj.Pool, error) {
+	p, err := ph.ScalePool(ctx, p, replicas)
+	if err != nil {
+		return nil, err
+	}
+
+	return ph.WaitSettled(ctx, p)
+}
+
+func (ph *PoolHelpers) RequireScalePoolThenWaitSettled(ctx context.Context, p *obj.Pool, replicas int32) *obj.Pool {
+	return ph.RequireWaitSettled(ctx, ph.RequireScalePool(ctx, p, replicas))
 }

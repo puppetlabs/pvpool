@@ -6,7 +6,7 @@ require (
 	github.com/golangci/golangci-lint v1.36.0
 	github.com/google/uuid v1.1.2
 	github.com/puppetlabs/leg/errmap v0.1.0
-	github.com/puppetlabs/leg/k8sutil v0.1.1-0.20210130004823-afff6b5f00a8
+	github.com/puppetlabs/leg/k8sutil v0.1.1-0.20210201225339-98b6c0d35351
 	github.com/puppetlabs/leg/mainutil v0.1.2
 	github.com/puppetlabs/leg/mathutil v0.1.0
 	github.com/puppetlabs/leg/timeutil v0.2.0
@@ -17,6 +17,7 @@ require (
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
 	k8s.io/klog/v2 v2.5.0
+	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
 	sigs.k8s.io/controller-runtime v0.8.1
 	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/kustomize/kustomize/v3 v3.9.2

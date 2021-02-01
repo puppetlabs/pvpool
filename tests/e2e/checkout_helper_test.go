@@ -15,8 +15,8 @@ type CheckoutHelpers struct {
 	eit *EnvironmentInTest
 }
 
-func (ch *CheckoutHelpers) WaitCheckedOut(ctx context.Context, co *obj.Checkout) *obj.Checkout {
-	require.NoError(ch.eit.t, Wait(ctx, func(ctx context.Context) (bool, error) {
+func (ch *CheckoutHelpers) WaitCheckedOut(ctx context.Context, co *obj.Checkout) (*obj.Checkout, error) {
+	err := Wait(ctx, func(ctx context.Context) (bool, error) {
 		if _, err := (lifecycle.RequiredLoader{Loader: co}).Load(ctx, ch.eit.ControllerClient); err != nil {
 			return true, err
 		}
@@ -26,11 +26,21 @@ func (ch *CheckoutHelpers) WaitCheckedOut(ctx context.Context, co *obj.Checkout)
 		}
 
 		return true, nil
-	}))
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return co, nil
+}
+
+func (ch *CheckoutHelpers) RequireWaitCheckedOut(ctx context.Context, co *obj.Checkout) *obj.Checkout {
+	co, err := ch.WaitCheckedOut(ctx, co)
+	require.NoError(ch.eit.t, err)
 	return co
 }
 
-func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey client.ObjectKey) *obj.Checkout {
+func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey client.ObjectKey) (*obj.Checkout, error) {
 	co := obj.NewCheckout(key)
 	co.Object.Spec = pvpoolv1alpha1.CheckoutSpec{
 		PoolRef: pvpoolv1alpha1.PoolReference{
@@ -38,11 +48,28 @@ func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey clie
 			Name:      poolKey.Name,
 		},
 	}
-	require.NoError(ch.eit.t, co.Persist(ctx, ch.eit.ControllerClient))
+	if err := co.Persist(ctx, ch.eit.ControllerClient); err != nil {
+		return nil, err
+	}
 
+	return co, nil
+}
+
+func (ch *CheckoutHelpers) RequireCreateCheckout(ctx context.Context, key, poolKey client.ObjectKey) *obj.Checkout {
+	co, err := ch.CreateCheckout(ctx, key, poolKey)
+	require.NoError(ch.eit.t, err)
 	return co
 }
 
-func (ch *CheckoutHelpers) CreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey) *obj.Checkout {
-	return ch.WaitCheckedOut(ctx, ch.CreateCheckout(ctx, key, poolKey))
+func (ch *CheckoutHelpers) CreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey) (*obj.Checkout, error) {
+	co, err := ch.CreateCheckout(ctx, key, poolKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return ch.WaitCheckedOut(ctx, co)
+}
+
+func (ch *CheckoutHelpers) RequireCreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey) *obj.Checkout {
+	return ch.RequireWaitCheckedOut(ctx, ch.RequireCreateCheckout(ctx, key, poolKey))
 }

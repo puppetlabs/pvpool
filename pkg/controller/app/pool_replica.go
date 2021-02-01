@@ -10,10 +10,12 @@ import (
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	"github.com/puppetlabs/leg/k8sutil/pkg/norm"
 	"github.com/puppetlabs/leg/mathutil/pkg/rand"
+	"github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/validation"
 	"github.com/puppetlabs/pvpool/pkg/obj"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,11 +37,9 @@ var (
 						Image: "busybox@sha256:8d0c42425011ea3fb5b4ec5a121dde4ce986c2efea46be9d981a478fe1d206ec",
 					},
 				},
-				RestartPolicy: corev1.RestartPolicyNever,
 			},
 		},
-		ActiveDeadlineSeconds: func(i int64) *int64 { return &i }(300),
-		BackoffLimit:          func(i int32) *int32 { return &i }(10),
+		BackoffLimit: pointer.Int32Ptr(validation.MountJobMaxBackoffLimit),
 	}
 )
 
@@ -195,6 +195,19 @@ func ConfigurePoolReplica(pr *PoolReplica) *PoolReplica {
 		} else {
 			pr.InitJob.Object.Spec = DefaultPoolReplicaInitJobSpec
 			volumeName = "workspace"
+		}
+
+		// Configure some of the required fields.
+		if pr.InitJob.Object.Spec.Template.Spec.RestartPolicy == "" {
+			pr.InitJob.Object.Spec.Template.Spec.RestartPolicy = validation.MountJobSpecBackoffPolicy
+		}
+
+		if pr.InitJob.Object.Spec.ActiveDeadlineSeconds == nil || *pr.InitJob.Object.Spec.ActiveDeadlineSeconds > validation.MountJobMaxActiveDeadlineSeconds {
+			pr.InitJob.Object.Spec.ActiveDeadlineSeconds = pointer.Int64Ptr(validation.MountJobMaxActiveDeadlineSeconds)
+		}
+
+		if pr.InitJob.Object.Spec.BackoffLimit != nil && *pr.InitJob.Object.Spec.BackoffLimit > validation.MountJobMaxBackoffLimit {
+			pr.InitJob.Object.Spec.BackoffLimit = pointer.Int32Ptr(validation.MountJobMaxBackoffLimit)
 		}
 
 		// Set up volume.
