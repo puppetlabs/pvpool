@@ -657,8 +657,8 @@ github.com/puppetlabs/leg/datastructure v0.1.0 h1:0703wQJ71etqsPOr+vfiTBHkq0+tVV
 github.com/puppetlabs/leg/datastructure v0.1.0/go.mod h1:4Kwk/83hkiR1smN1gRsi0LJDgVDbD672JpWjRPBVka8=
 github.com/puppetlabs/leg/errmap v0.1.0 h1:1oH50d/sch1kB5JuIRrLf0hg9gSr5pfAmTUc6o8CtZQ=
 github.com/puppetlabs/leg/errmap v0.1.0/go.mod h1:8oVNaeaaprDjbMYWHj5lLHsD1nsnKZbv0Jw+SjoJ6hY=
-github.com/puppetlabs/leg/k8sutil v0.1.1-0.20210201225339-98b6c0d35351 h1:0VGfD9KNf8+j5SyN98hodo5GGRCOkRJbo+sKitbn/zc=
-github.com/puppetlabs/leg/k8sutil v0.1.1-0.20210201225339-98b6c0d35351/go.mod h1:+li1P4+OuRsaQxOMv8It+1fwmv77qOPAZfhCWidcPJA=
+github.com/puppetlabs/leg/k8sutil v0.2.0 h1:5W03D5KHydf1vW0SfRwHwULJQbUKRCd0v+nSbRiOsTs=
+github.com/puppetlabs/leg/k8sutil v0.2.0/go.mod h1:+li1P4+OuRsaQxOMv8It+1fwmv77qOPAZfhCWidcPJA=
 github.com/puppetlabs/leg/lifecycle v0.2.0 h1:WYaQF+mdW8Wy+tRHkEE9175Bhkd3zJ7i0qnOQkb+BmY=
 github.com/puppetlabs/leg/lifecycle v0.2.0/go.mod h1:QtYNNukWpkcLWZAWcM9tVxcWfqn9mULH5J3dCkMqzGk=
 github.com/puppetlabs/leg/logging v0.1.0 h1:G8M2w3izYEtoaH+d3rIJZ9iLX2oW2T/jO+J4l+T0Ieo=
