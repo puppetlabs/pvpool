@@ -40,7 +40,28 @@ func (pr *CheckoutReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return reconcile.Result{}, err
 	}
 
-	_, err = app.ApplyCheckoutState(ctx, pr.cl, checkout)
+	cs := app.NewCheckoutState(checkout)
+	defer func() {
+		checkout = app.ConfigureCheckout(cs)
+		if serr := checkout.PersistStatus(ctx, pr.cl); serr != nil {
+			if err == nil {
+				err = serr
+			} else {
+				klog.ErrorS(serr, "checkout reconciler: failed to update checkout status", "pool", req.NamespacedName)
+			}
+		}
+	}()
+
+	if ok, err := cs.Load(ctx, pr.cl); err != nil || !ok {
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	cs, err = app.ConfigureCheckoutState(cs)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = cs.Persist(ctx, pr.cl)
 	return
 }
 

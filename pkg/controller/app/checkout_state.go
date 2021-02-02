@@ -9,6 +9,7 @@ import (
 	corev1obj "github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/api/corev1"
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	"github.com/puppetlabs/leg/mathutil/pkg/rand"
+	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/puppetlabs/pvpool/pkg/obj"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,6 +27,9 @@ type CheckoutState struct {
 	// checkout. If this object exists, but not PersistentVolumeClaim, we merely
 	// need to set up the PVC to point at this PV.
 	PersistentVolume *corev1obj.PersistentVolume
+
+	// Conds represent status updates for given conditions.
+	Conds map[pvpoolv1alpha1.CheckoutConditionType]pvpoolv1alpha1.Condition
 }
 
 var _ lifecycle.Loader = &CheckoutState{}
@@ -89,6 +93,11 @@ func (cs *CheckoutState) loadFromPool(ctx context.Context, cl client.Client) (bo
 	})
 	if _, err := (lifecycle.RequiredLoader{Loader: pool}).Load(ctx, cl); err != nil {
 		eventctx.EventRecorder(ctx).Eventf(cs.Checkout.Object, "Warning", "PoolAvailability", "Pool %s does not exist", pool.Key)
+		cs.Conds[pvpoolv1alpha1.CheckoutAcquired] = pvpoolv1alpha1.Condition{
+			Status:  corev1.ConditionUnknown,
+			Reason:  pvpoolv1alpha1.CheckoutAcquiredReasonPoolDoesNotExist,
+			Message: fmt.Sprintf("The pool %q does not exist.", pool.Key),
+		}
 
 		return false, err
 	}
@@ -111,6 +120,11 @@ func (cs *CheckoutState) loadFromPool(ctx context.Context, cl client.Client) (bo
 		return false, err
 	} else if !found {
 		eventctx.EventRecorder(ctx).Event(cs.Checkout.Object, "Warning", "PoolAvailability", "Pool has no available PVCs to check out")
+		cs.Conds[pvpoolv1alpha1.CheckoutAcquired] = pvpoolv1alpha1.Condition{
+			Status:  corev1.ConditionUnknown,
+			Reason:  pvpoolv1alpha1.CheckoutAcquiredReasonNotAvailable,
+			Message: fmt.Sprintf("The pool %q has no available PVCs to check out.", pool.Key),
+		}
 
 		klog.InfoS("checkout state: load: pool has no available PVCs", "checkout", cs.Checkout.Key, "pool", pool.Key)
 		return false, errmark.MarkTransient(fmt.Errorf("pool %s has no available PVCs", pool.Key))
@@ -142,15 +156,16 @@ func (cs *CheckoutState) Load(ctx context.Context, cl client.Client) (bool, erro
 }
 
 func (cs *CheckoutState) Persist(ctx context.Context, cl client.Client) error {
-	if err := cs.Checkout.PersistStatus(ctx, cl); err != nil {
-		return err
-	}
-
 	if err := cs.Checkout.Own(ctx, cs.PersistentVolumeClaim); err != nil {
 		return err
 	}
 
 	if err := cs.PersistentVolumeClaim.Persist(ctx, cl); errors.IsInvalid(err) {
+		cs.Conds[pvpoolv1alpha1.CheckoutAcquired] = pvpoolv1alpha1.Condition{
+			Status:  corev1.ConditionFalse,
+			Reason:  pvpoolv1alpha1.CheckoutAcquiredReasonInvalid,
+			Message: fmt.Sprintf("The PVC could not be created because of configuration problems: %v", err),
+		}
 		return errmark.MarkUser(err)
 	} else if err != nil {
 		return err
@@ -165,27 +180,34 @@ func (cs *CheckoutState) Persist(ctx context.Context, cl client.Client) error {
 	// Sync UID to ClaimRef.
 	cs.PersistentVolume.Object.Spec.ClaimRef.UID = cs.PersistentVolumeClaim.Object.GetUID()
 
-	return cs.PersistentVolume.Persist(ctx, cl)
+	if err := cs.PersistentVolume.Persist(ctx, cl); err != nil {
+		return err
+	}
+
+	if cs.PersistentVolumeClaim.Object.Status.Phase == corev1.ClaimBound {
+		cs.Conds[pvpoolv1alpha1.CheckoutAcquired] = pvpoolv1alpha1.Condition{
+			Status:  corev1.ConditionTrue,
+			Reason:  pvpoolv1alpha1.CheckoutAcquiredReasonCheckedOut,
+			Message: "The PVC is ready to use.",
+		}
+	}
+
+	return nil
 }
 
 func NewCheckoutState(c *obj.Checkout) *CheckoutState {
 	return &CheckoutState{
 		Checkout:              c,
 		PersistentVolumeClaim: corev1obj.NewPersistentVolumeClaim(c.Key),
+		Conds:                 make(map[pvpoolv1alpha1.CheckoutConditionType]pvpoolv1alpha1.Condition),
 	}
 }
 
 func ConfigureCheckoutState(cs *CheckoutState) (*CheckoutState, error) {
 	if cs.PersistentVolume == nil {
 		klog.V(4).InfoS("checkout state: configure: no volume, clearing status", "checkout", cs.Checkout.Key)
-
-		// Something didn't go right when loading probably. Clear our state.
-		cs.Checkout.Object.Status.VolumeName = ""
-		cs.Checkout.Object.Status.VolumeClaimRef = corev1.LocalObjectReference{}
 		return cs, nil
 	}
-
-	cs.Checkout.Object.Status.VolumeName = cs.PersistentVolume.Name
 
 	// Set up the PV to point at our claim.
 	cs.PersistentVolume.Object.Spec.ClaimRef = &corev1.ObjectReference{
@@ -201,33 +223,6 @@ func ConfigureCheckoutState(cs *CheckoutState) (*CheckoutState, error) {
 		Requests: corev1.ResourceList{
 			corev1.ResourceStorage: cs.PersistentVolume.Object.Spec.Capacity.Storage().DeepCopy(),
 		},
-	}
-
-	if cs.PersistentVolumeClaim.Object.Status.Phase == corev1.ClaimBound {
-		cs.Checkout.Object.Status.VolumeClaimRef = corev1.LocalObjectReference{
-			Name: cs.PersistentVolumeClaim.Key.Name,
-		}
-	} else {
-		cs.Checkout.Object.Status.VolumeClaimRef = corev1.LocalObjectReference{}
-	}
-
-	return cs, nil
-}
-
-func ApplyCheckoutState(ctx context.Context, cl client.Client, c *obj.Checkout) (*CheckoutState, error) {
-	cs := NewCheckoutState(c)
-
-	if _, err := cs.Load(ctx, cl); err != nil {
-		return nil, err
-	}
-
-	cs, err := ConfigureCheckoutState(cs)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := cs.Persist(ctx, cl); err != nil {
-		return nil, err
 	}
 
 	return cs, nil

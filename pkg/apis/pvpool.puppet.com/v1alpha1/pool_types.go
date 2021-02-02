@@ -67,6 +67,50 @@ type MountJob struct {
 	VolumeName string `json:"volumeName,omitempty"`
 }
 
+// PoolConditionType is the type of a Pool condition.
+type PoolConditionType string
+
+const (
+	// PoolAvailable indicates whether a Pool contains one or more usable
+	// replicas.
+	PoolAvailable PoolConditionType = "Available"
+
+	// PoolAvailableReasonNoReplicasRequested is used to indicate that this pool
+	// has no replicas in its spec.
+	PoolAvailableReasonNoReplicasRequested = "NoReplicasRequested"
+
+	// PoolAvailableReasonMinimumReplicasAvailable is used to indicate
+	// successful binding and initialization of one or more PVCs in the pool.
+	PoolAvailableReasonMinimumReplicasAvailable = "MinimumReplicasAvailable"
+
+	// PoolSettlement indicates whether all of the desired replicas for the Pool
+	// are now set up and ready to use.
+	PoolSettlement PoolConditionType = "Settlement"
+
+	// PoolSettlementReasonInvalid is used when user-specified configuration
+	// that could not be statically checked is invalid.
+	PoolSettlementReasonInvalid = "Invalid"
+
+	// PoolSettlementReasonInitJobFailed is used when the job used to initialize
+	// the PVC has failed, either temporarily or permanently.
+	PoolSettlementReasonInitJobFailed = "InitJobFailed"
+
+	// PoolSettlementReasonSettled is used to indicate that the observed
+	// generation matches the object generation and exactly the number of
+	// desired replicas are in place.
+	PoolSettlementReasonSettled = "Settled"
+)
+
+// PoolCondition is a status condition for a Pool.
+type PoolCondition struct {
+	Condition `json:",inline"`
+
+	// Type is the identifier for this condition.
+	//
+	// +kubebuilder:validation:Enum=Available;Settlement
+	Type PoolConditionType `json:"type"`
+}
+
 // PoolStatus is the runtime state of an existing pool.
 type PoolStatus struct {
 	// ObservedGeneration is the generation of the resource specification that
@@ -86,6 +130,13 @@ type PoolStatus struct {
 	//
 	// +optional
 	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
+
+	// Conditions are the possible observable conditions for this pool.
+	//
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	Conditions []PoolCondition `json:"conditions,omitempty"`
 }
 
 // PoolList enumerates many Pool resources.

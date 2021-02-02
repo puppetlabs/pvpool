@@ -71,6 +71,39 @@ spec:
           status:
             description: CheckoutStatus is the runtime state of a checkout.
             properties:
+              conditions:
+                description: Conditions are the possible observable conditions for
+                  the checkout.
+                items:
+                  description: CheckoutCondition is a status condition for a Checkout.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message is a human-readable description of the
+                        given status.
+                      type: string
+                    reason:
+                      description: Reason identifies the cause of the given status
+                        using an API-locked camel-case identifier.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: Type is the identifier for this condition.
+                      enum:
+                      - Acquired
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               volumeClaimRef:
                 description: "VolumeClaimRef is a reference to the PVC checked out
                   from the pool. \n This field will only be set when the checked out

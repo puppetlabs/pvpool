@@ -41,6 +41,15 @@ func (c *Checkout) PersistStatus(ctx context.Context, cl client.Client) error {
 	return cl.Status().Update(ctx, c.Object)
 }
 
+func (c *Checkout) Condition(typ pvpoolv1alpha1.CheckoutConditionType) (pvpoolv1alpha1.CheckoutCondition, bool) {
+	for _, cond := range c.Object.Status.Conditions {
+		if cond.Type == typ {
+			return cond, true
+		}
+	}
+	return pvpoolv1alpha1.CheckoutCondition{Type: typ}, false
+}
+
 func NewCheckout(key client.ObjectKey) *Checkout {
 	return &Checkout{
 		Key:    key,

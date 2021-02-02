@@ -7685,6 +7685,40 @@ spec:
                   that are ready to be checked out.
                 format: int32
                 type: integer
+              conditions:
+                description: Conditions are the possible observable conditions for
+                  this pool.
+                items:
+                  description: PoolCondition is a status condition for a Pool.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message is a human-readable description of the
+                        given status.
+                      type: string
+                    reason:
+                      description: Reason identifies the cause of the given status
+                        using an API-locked camel-case identifier.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: Type is the identifier for this condition.
+                      enum:
+                      - Available
+                      - Settlement
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               observedGeneration:
                 description: ObservedGeneration is the generation of the resource
                   specification that this status matches.

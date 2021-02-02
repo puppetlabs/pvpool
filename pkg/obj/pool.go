@@ -54,6 +54,15 @@ func (p *Pool) PersistStatus(ctx context.Context, cl client.Client) error {
 	return cl.Status().Update(ctx, p.Object)
 }
 
+func (p *Pool) Condition(typ pvpoolv1alpha1.PoolConditionType) (pvpoolv1alpha1.PoolCondition, bool) {
+	for _, cond := range p.Object.Status.Conditions {
+		if cond.Type == typ {
+			return cond, true
+		}
+	}
+	return pvpoolv1alpha1.PoolCondition{Type: typ}, false
+}
+
 func NewPool(key client.ObjectKey) *Pool {
 	return &Pool{
 		Key:    key,

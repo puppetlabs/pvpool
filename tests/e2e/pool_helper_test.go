@@ -29,21 +29,11 @@ func (ph *PoolHelpers) WaitSettled(ctx context.Context, p *obj.Pool) (*obj.Pool,
 			return false, fmt.Errorf("pool status is for generation %d, but pool has updated to generation %d", p.Object.Status.ObservedGeneration, p.Object.GetGeneration())
 		}
 
-		var request int32 = 1
-		if p.Object.Spec.Replicas != nil {
-			request = *p.Object.Spec.Replicas
+		if cond, _ := p.Condition(pvpoolv1alpha1.PoolSettlement); cond.Status != corev1.ConditionTrue {
+			return false, fmt.Errorf("pool has %d available replicas", p.Object.Status.AvailableReplicas)
 		}
 
-		avail := p.Object.Status.AvailableReplicas
-
-		switch {
-		case request > avail:
-			return false, fmt.Errorf("scaling up: pool has %d replicas, but needs %d", avail, request)
-		case request < avail:
-			return false, fmt.Errorf("scaling down: pool has %d replicas, but needs %d", avail, request)
-		default:
-			return true, nil
-		}
+		return true, nil
 	})
 	if err != nil {
 		return nil, err

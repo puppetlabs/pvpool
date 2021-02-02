@@ -76,3 +76,23 @@ func TestPoolPVCReplacement(t *testing.T) {
 		})
 	})
 }
+
+func TestPoolsWithSameSelector(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	WithEnvironmentInTest(t, func(eit *EnvironmentInTest) {
+		eit.WithNamespace(ctx, func(ns *corev1.Namespace) {
+			p1 := eit.PoolHelpers.RequireCreatePool(ctx, client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-1",
+			}, CreatePoolWithReplicas(3))
+			p2 := eit.PoolHelpers.RequireCreatePool(ctx, client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-2",
+			}, CreatePoolWithReplicas(3))
+			_ = eit.PoolHelpers.RequireWaitSettled(ctx, p1)
+			_ = eit.PoolHelpers.RequireWaitSettled(ctx, p2)
+		})
+	})
+}

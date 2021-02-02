@@ -8,6 +8,7 @@ import (
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/puppetlabs/pvpool/pkg/obj"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -21,7 +22,7 @@ func (ch *CheckoutHelpers) WaitCheckedOut(ctx context.Context, co *obj.Checkout)
 			return true, err
 		}
 
-		if co.Object.Status.VolumeClaimRef.Name == "" {
+		if cond, _ := co.Condition(pvpoolv1alpha1.CheckoutAcquired); cond.Status != corev1.ConditionTrue {
 			return false, fmt.Errorf("no volume claim associated with checkout")
 		}
 

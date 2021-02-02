@@ -38,6 +38,41 @@ type CheckoutSpec struct {
 	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
 }
 
+// CheckoutConditionType is the type of a Checkout condition.
+type CheckoutConditionType string
+
+const (
+	// CheckoutAcquired indicates whether a Checkout has successfully taken a
+	// PVC from the pool.
+	CheckoutAcquired CheckoutConditionType = "Acquired"
+
+	// CheckoutAcquiredReasonPoolDoesNotExist is used to indicate that the
+	// poolRef points to a nonexistent pool.
+	CheckoutAcquiredReasonPoolDoesNotExist = "PoolDoesNotExist"
+
+	// CheckoutAcquiredReasonNotAvailable is used to indicate that the pool does
+	// not have any available PVCs.
+	CheckoutAcquiredReasonNotAvailable = "NotAvailable"
+
+	// CheckoutAcquiredReasonInvalid is used to indicate that the PVC template
+	// for this checkout is invalid.
+	CheckoutAcquiredReasonInvalid = "Invalid"
+
+	// CheckoutAcquiredReasonCheckedOut is used to indicate that a PVC was
+	// successfully taken and is now available.
+	CheckoutAcquiredReasonCheckedOut = "CheckedOut"
+)
+
+// CheckoutCondition is a status condition for a Checkout.
+type CheckoutCondition struct {
+	Condition `json:",inline"`
+
+	// Type is the identifier for this condition.
+	//
+	// +kubebuilder:validation:Enum=Acquired
+	Type CheckoutConditionType `json:"type"`
+}
+
 // CheckoutStatus is the runtime state of a checkout.
 type CheckoutStatus struct {
 	// VolumeName is the name of the volume being configured for the checkout.
@@ -56,6 +91,13 @@ type CheckoutStatus struct {
 	//
 	// +optional
 	VolumeClaimRef corev1.LocalObjectReference `json:"volumeClaimRef,omitempty"`
+
+	// Conditions are the possible observable conditions for the checkout.
+	//
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	Conditions []CheckoutCondition `json:"conditions,omitempty"`
 }
 
 // CheckoutList enumerates many Checkout resources.

@@ -3,12 +3,14 @@ package app
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/puppetlabs/leg/errmap/pkg/errmark"
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/eventctx"
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	"github.com/puppetlabs/leg/mathutil/pkg/rand"
+	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/puppetlabs/pvpool/pkg/obj"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,6 +24,9 @@ type PoolState struct {
 	Initializing PoolReplicas
 	Available    PoolReplicas
 	Stale        PoolReplicas
+
+	// Conds represent status updates for given conditions.
+	Conds map[pvpoolv1alpha1.PoolConditionType]pvpoolv1alpha1.Condition
 }
 
 var _ lifecycle.Deleter = &PoolState{}
@@ -125,6 +130,12 @@ func (ps *PoolState) persistAvailable(ctx context.Context, cl client.Client) err
 		if err := pr.Persist(ctx, cl); err != nil {
 			return err
 		}
+
+		ps.Conds[pvpoolv1alpha1.PoolAvailable] = pvpoolv1alpha1.Condition{
+			Status:  corev1.ConditionTrue,
+			Reason:  pvpoolv1alpha1.PoolAvailableReasonMinimumReplicasAvailable,
+			Message: "One or more replicas are available to be checked out.",
+		}
 	}
 
 	return nil
@@ -148,6 +159,11 @@ func (ps *PoolState) persistStale(ctx context.Context, cl client.Client) error {
 
 		if fc, ok := pr.InitJob.FailedCondition(); ok && fc.Status == corev1.ConditionTrue {
 			eventctx.EventRecorder(ctx).Eventf(ps.Pool.Object, "Warning", "StaleReplica", "Deleting stale replica with failed init job: %s: %s", fc.Reason, fc.Message)
+			ps.Conds[pvpoolv1alpha1.PoolSettlement] = pvpoolv1alpha1.Condition{
+				Status:  corev1.ConditionUnknown,
+				Reason:  pvpoolv1alpha1.PoolSettlementReasonInitJobFailed,
+				Message: fmt.Sprintf("A PVC could not be initialized because its job failed: %s: %s", fc.Reason, fc.Message),
+			}
 		}
 
 		if _, err := pr.Delete(ctx, cl); err != nil {
@@ -166,6 +182,11 @@ func (ps *PoolState) persistScaleUp(ctx context.Context, cl client.Client) error
 	id := uuid.New()
 	pr, err := ApplyPoolReplica(ctx, cl, ps.Pool, hex.EncodeToString(id[:]))
 	if errors.IsInvalid(err) {
+		ps.Conds[pvpoolv1alpha1.PoolSettlement] = pvpoolv1alpha1.Condition{
+			Status:  corev1.ConditionFalse,
+			Reason:  pvpoolv1alpha1.PoolSettlementReasonInvalid,
+			Message: fmt.Sprintf("A PVC could not be created because of configuration problems: %v", err),
+		}
 		return errmark.MarkUser(err)
 	} else if err != nil {
 		return err
@@ -229,15 +250,16 @@ func (ps *PoolState) persistScale(ctx context.Context, cl client.Client) error {
 		eventctx.EventRecorder(ctx).Eventf(ps.Pool.Object, "Normal", "PoolScaling", "Scaling pool down to %d replicas", request)
 		return ps.persistScaleDown(ctx, cl)
 	default:
+		ps.Conds[pvpoolv1alpha1.PoolSettlement] = pvpoolv1alpha1.Condition{
+			Status:  corev1.ConditionTrue,
+			Reason:  pvpoolv1alpha1.PoolSettlementReasonSettled,
+			Message: fmt.Sprintf("All requested replicas are available to be checked out."),
+		}
 		return nil
 	}
 }
 
 func (ps *PoolState) Persist(ctx context.Context, cl client.Client) error {
-	if err := ps.Pool.PersistStatus(ctx, cl); err != nil {
-		return err
-	}
-
 	if err := ps.persistInitializing(ctx, cl); err != nil {
 		return err
 	}
@@ -259,35 +281,25 @@ func (ps *PoolState) Persist(ctx context.Context, cl client.Client) error {
 
 func NewPoolState(p *obj.Pool) *PoolState {
 	return &PoolState{
-		Pool: p,
+		Pool:  p,
+		Conds: make(map[pvpoolv1alpha1.PoolConditionType]pvpoolv1alpha1.Condition),
 	}
 }
 
 func ConfigurePoolState(ps *PoolState) *PoolState {
-	ps.Pool.Object.Status.ObservedGeneration = ps.Pool.Object.GetGeneration()
-	ps.Pool.Object.Status.Replicas = int32(len(ps.Available) + len(ps.Initializing) + len(ps.Stale))
-	ps.Pool.Object.Status.AvailableReplicas = int32(len(ps.Available))
-
 	// See if any initializing PVCs need to be moved.
 	for i := range ps.Initializing {
 		ps.Initializing[i] = ConfigurePoolReplica(ps.Initializing[i])
 	}
 
+	// Set initial relevant condition reasons, if applicable.
+	if request := ps.Pool.Object.Spec.Replicas; request != nil && *request == 0 {
+		ps.Conds[pvpoolv1alpha1.PoolAvailable] = pvpoolv1alpha1.Condition{
+			Status:  corev1.ConditionFalse,
+			Reason:  pvpoolv1alpha1.PoolAvailableReasonNoReplicasRequested,
+			Message: "The pool has no replicas configured.",
+		}
+	}
+
 	return ps
-}
-
-func ApplyPoolState(ctx context.Context, cl client.Client, p *obj.Pool) (*PoolState, error) {
-	ps := NewPoolState(p)
-
-	if _, err := ps.Load(ctx, cl); err != nil {
-		return nil, err
-	}
-
-	ps = ConfigurePoolState(ps)
-
-	if err := ps.Persist(ctx, cl); err != nil {
-		return nil, err
-	}
-
-	return ps, nil
 }

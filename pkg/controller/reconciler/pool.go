@@ -47,8 +47,23 @@ func (pr *PoolReconciler) Reconcile(ctx context.Context, req reconcile.Request) 
 	}
 
 	ps := app.NewPoolState(pool)
-	if _, err := ps.Load(ctx, pr.cl); err != nil {
-		return reconcile.Result{}, err
+	defer func() {
+		pool = app.ConfigurePool(ps)
+		if pool.Finalizing() {
+			return
+		}
+
+		if serr := pool.PersistStatus(ctx, pr.cl); serr != nil {
+			if err == nil {
+				err = serr
+			} else {
+				klog.ErrorS(serr, "pool reconciler: failed to update pool status", "pool", req.NamespacedName)
+			}
+		}
+	}()
+
+	if ok, err := ps.Load(ctx, pr.cl); err != nil || !ok {
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	finalized, err := lifecycle.Finalize(ctx, pr.cl, PoolReconcilerFinalizerName, pool, func() error {
@@ -59,7 +74,9 @@ func (pr *PoolReconciler) Reconcile(ctx context.Context, req reconcile.Request) 
 		return reconcile.Result{}, err
 	}
 
-	err = app.ConfigurePoolState(ps).Persist(ctx, pr.cl)
+	ps = app.ConfigurePoolState(ps)
+
+	err = ps.Persist(ctx, pr.cl)
 	return
 }
 
