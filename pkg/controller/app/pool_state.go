@@ -95,10 +95,13 @@ func (ps *PoolState) Load(ctx context.Context, cl client.Client) (bool, error) {
 
 		switch {
 		case pr.Stale():
+			klog.V(4).InfoS("pool state: load: replica is stale", "pvc", pr.PersistentVolumeClaim.Key)
 			ps.Stale = append(ps.Stale, pr)
 		case pr.Available():
+			klog.V(4).InfoS("pool state: load: replica is available", "pvc", pr.PersistentVolumeClaim.Key)
 			ps.Available = append(ps.Available, pr)
 		default:
+			klog.V(4).InfoS("pool state: load: replica is initializing", "pvc", pr.PersistentVolumeClaim.Key)
 			ps.Initializing = append(ps.Initializing, pr)
 		}
 	}
@@ -249,12 +252,14 @@ func (ps *PoolState) persistScale(ctx context.Context, cl client.Client) error {
 	case actual > request:
 		eventctx.EventRecorder(ctx).Eventf(ps.Pool.Object, "Normal", "PoolScaling", "Scaling pool down to %d replicas", request)
 		return ps.persistScaleDown(ctx, cl)
-	default:
+	case len(ps.Initializing) == 0:
 		ps.Conds[pvpoolv1alpha1.PoolSettlement] = pvpoolv1alpha1.Condition{
 			Status:  corev1.ConditionTrue,
 			Reason:  pvpoolv1alpha1.PoolSettlementReasonSettled,
 			Message: fmt.Sprintf("All requested replicas are available to be checked out."),
 		}
+		fallthrough
+	default:
 		return nil
 	}
 }

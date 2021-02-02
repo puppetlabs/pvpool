@@ -14,7 +14,7 @@ export SHELLCHECK ?= shellcheck
 # Variables
 #
 
-export PVPOOL_VERSION ?= $(shell $(GIT) describe --tags --always --dirty)
+export PVPOOL_VERSION := $(or $(PVPOOL_VERSION),$(shell $(GIT) describe --tags --always --dirty))
 export PVPOOL_TEST_E2E_KUBECONFIG ?=
 export PVPOOL_TEST_E2E_STORAGE_CLASS_NAME ?=
 

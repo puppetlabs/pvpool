@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	batchv1obj "github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/api/batchv1"
 	corev1obj "github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/api/corev1"
@@ -158,7 +159,7 @@ func ConfigurePoolReplica(pr *PoolReplica) *PoolReplica {
 	}
 
 	// Configure the PVC if it's not yet bound.
-	if pvc := pr.PersistentVolumeClaim.Object; pvc.Status.Phase != corev1.ClaimBound {
+	if pvc := pr.PersistentVolumeClaim.Object; pvc.Status.Phase != corev1.ClaimPending && pvc.Status.Phase != corev1.ClaimBound {
 		pvc.Spec = pr.Pool.Object.Spec.Template.Spec
 
 		// We always request dynamic provisioning, so we must prevent certain
@@ -279,4 +280,14 @@ func indexVolumeByName(vols []corev1.Volume, name string) int {
 	}
 
 	return -1
+}
+
+type PoolReplicasSortByCreationTimestamp []*PoolReplica
+
+var _ sort.Interface = PoolReplicasSortByCreationTimestamp(nil)
+
+func (prs PoolReplicasSortByCreationTimestamp) Len() int      { return len(prs) }
+func (prs PoolReplicasSortByCreationTimestamp) Swap(i, j int) { prs[i], prs[j] = prs[j], prs[i] }
+func (prs PoolReplicasSortByCreationTimestamp) Less(i, j int) bool {
+	return prs[i].PersistentVolumeClaim.Object.CreationTimestamp.Before(&prs[j].PersistentVolumeClaim.Object.CreationTimestamp)
 }
