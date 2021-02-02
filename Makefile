@@ -72,11 +72,13 @@ else
 test: export KUBECONFIG := $(PVPOOL_TEST_E2E_KUBECONFIG)
 ifeq ($(PVPOOL_TEST_E2E_STORAGE_CLASS_NAME),)
 test: apply-test
-	$(KUBECTL) wait --timeout=180s -n local-path-storage --for=condition=available deployments --all
+	$(KUBECTL) get deployment -n local-path-storage -o name \
+		| xargs -n 1 -t $(KUBECTL) rollout status --watch --timeout=180s -n local-path-storage
 else
 test: apply-debug
 endif
-	$(KUBECTL) wait --timeout=180s -n pvpool --for=condition=available deployments --all
+	$(KUBECTL) get deployment -n pvpool -o name \
+		| xargs -n 1 -t $(KUBECTL) rollout status --watch --timeout=180s -n pvpool
 	scripts/test
 endif
 

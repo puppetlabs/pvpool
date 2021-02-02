@@ -40,8 +40,11 @@ func (cs *CheckoutState) loadFromVolumeName(ctx context.Context, cl client.Clien
 	klog.V(4).InfoS("checkout state: load: loading from persistent volume name", "checkout", cs.Checkout.Key, "pv", volumeName)
 
 	volume := corev1obj.NewPersistentVolume(volumeName)
-	if _, err := volume.Load(ctx, cl); err != nil {
+	if ok, err := volume.Load(ctx, cl); err != nil {
 		return err
+	} else if !ok || volume.Object.Spec.ClaimRef == nil { // Not bound?
+		klog.InfoS("checkout state: load: persistent volume missing or not bound (not using)", "checkout", cs.Checkout.Key, "pv", volume.Name)
+		return nil
 	}
 
 	// Let's see which PVC this PV points at.
