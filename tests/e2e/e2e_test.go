@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -31,11 +32,12 @@ func init() {
 
 type EnvironmentInTest struct {
 	*endtoend.Environment
-	Labels          map[string]string
-	PoolHelpers     *PoolHelpers
-	CheckoutHelpers *CheckoutHelpers
-	t               *testing.T
-	nf              endtoend.NamespaceFactory
+	Labels           map[string]string
+	StorageClassName string
+	PoolHelpers      *PoolHelpers
+	CheckoutHelpers  *CheckoutHelpers
+	t                *testing.T
+	nf               endtoend.NamespaceFactory
 }
 
 func (eit *EnvironmentInTest) WithNamespace(ctx context.Context, fn func(ns *corev1.Namespace)) {
@@ -47,10 +49,11 @@ func (eit *EnvironmentInTest) Impersonate(ic rest.ImpersonationConfig) *Environm
 	require.NoError(eit.t, err)
 
 	ceit := &EnvironmentInTest{
-		Environment: e,
-		Labels:      eit.Labels,
-		t:           eit.t,
-		nf:          eit.nf,
+		Environment:      e,
+		Labels:           eit.Labels,
+		StorageClassName: eit.StorageClassName,
+		t:                eit.t,
+		nf:               eit.nf,
 	}
 	ceit.PoolHelpers = &PoolHelpers{eit: ceit}
 	ceit.CheckoutHelpers = &CheckoutHelpers{eit: ceit}
@@ -60,6 +63,8 @@ func (eit *EnvironmentInTest) Impersonate(ic rest.ImpersonationConfig) *Environm
 func WithEnvironmentInTest(t *testing.T, fn func(eit *EnvironmentInTest)) {
 	viper.SetEnvPrefix("pvpool_test_e2e")
 	viper.AutomaticEnv()
+
+	viper.SetDefault("storage_class_name", "local-path")
 
 	kubeconfigs := strings.TrimSpace(viper.GetString("kubeconfig"))
 	if testing.Short() {
@@ -84,10 +89,11 @@ func WithEnvironmentInTest(t *testing.T, fn func(eit *EnvironmentInTest)) {
 		}
 
 		eit := &EnvironmentInTest{
-			Environment: e,
-			Labels:      ls,
-			t:           t,
-			nf:          endtoend.NewTestNamespaceFactory(t, endtoend.NamespaceWithLabels(ls)),
+			Environment:      e,
+			Labels:           ls,
+			StorageClassName: strings.TrimSpace(viper.GetString("storage_class_name")),
+			t:                t,
+			nf:               endtoend.NewTestNamespaceFactory(t, endtoend.NamespaceWithLabels(ls)),
 		}
 		eit.PoolHelpers = &PoolHelpers{eit: eit}
 		eit.CheckoutHelpers = &CheckoutHelpers{eit: eit}

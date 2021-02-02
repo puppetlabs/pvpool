@@ -114,7 +114,7 @@ func (ph *PoolHelpers) CreatePool(ctx context.Context, key client.ObjectKey, opt
 				},
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
-				StorageClassName: pointer.StringPtr("local-path"),
+				StorageClassName: pointer.StringPtr(ph.eit.StorageClassName),
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: resource.MustParse("10Mi"),

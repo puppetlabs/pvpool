@@ -16,6 +16,7 @@ export SHELLCHECK ?= shellcheck
 
 export PVPOOL_VERSION ?= $(shell $(GIT) describe --tags --always --dirty)
 export PVPOOL_TEST_E2E_KUBECONFIG ?=
+export PVPOOL_TEST_E2E_STORAGE_CLASS_NAME ?=
 
 export KO_DOCKER_REPO ?= ko.local
 export GOFLAGS ?=
@@ -69,8 +70,12 @@ test: generate
 	scripts/test
 else
 test: export KUBECONFIG := $(PVPOOL_TEST_E2E_KUBECONFIG)
+ifeq ($(PVPOOL_TEST_E2E_STORAGE_CLASS_NAME),)
 test: apply-test
 	$(KUBECTL) wait --timeout=180s -n local-path-storage --for=condition=available deployments --all
+else
+test: apply-debug
+endif
 	$(KUBECTL) wait --timeout=180s -n pvpool --for=condition=available deployments --all
 	scripts/test
 endif
