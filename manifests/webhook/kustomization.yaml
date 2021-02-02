@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- generated/role.yaml
+- serviceaccount.yaml
+- clusterrolebinding.yaml
+- deployment.yaml
+- service.yaml
+- generated/manifests.yaml
+configurations:
+- kustomizeconfig/namereference.yaml
+- kustomizeconfig/namespace.yaml
+- kustomizeconfig/varreference.yaml
+configMapGenerator:
+- name: pvpool-webhook-config
+  files:
+  - _examples=configmap-config-_examples.txt
+  literals:
+  - certificate-secret-name=
+vars:
+- name: PVPOOL_WEBHOOK_CERTIFICATE_SECRET_NAME
+  objref:
+    apiVersion: v1
+    kind: ConfigMap
+    name: pvpool-webhook-config
+  fieldref:
+    fieldpath: data.certificate-secret-name
+commonLabels:
+  app.kubernetes.io/name: pvpool
+  app.kubernetes.io/component: webhook
+  app.kubernetes.io/instance: pvpool-webhook
+patches:
+- target:
+    group: admissionregistration.k8s.io
+    kind: ValidatingWebhookConfiguration
+    name: validating-webhook-configuration
+  patch: |-
+    - op: replace
+      path: /metadata/name
+      value: pvpool-webhook
+- target:
+    kind: Service
+    name: webhook-service
+  patch: |-
+    - op: replace
+      path: /metadata/name
+      value: pvpool-webhook

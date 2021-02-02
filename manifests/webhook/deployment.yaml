@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvpool-webhook
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      pvpool.puppet.com/selector: pvpool-webhook
+  template:
+    metadata:
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+      labels:
+        pvpool.puppet.com/selector: pvpool-webhook
+    spec:
+      serviceAccountName: pvpool-webhook
+      volumes:
+      - name: pvpool-webhook-certificate
+        secret:
+          secretName: $(PVPOOL_WEBHOOK_CERTIFICATE_SECRET_NAME)
+      containers:
+      - name: pvpool-webhook
+        image: ko://github.com/puppetlabs/pvpool/cmd/pvpool-webhook
+        env:
+        - name: PVPOOL_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: pvpool-webhook-config
+              key: debug
+              optional: true
+        - name: PVPOOL_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: "metadata.labels['app.kubernetes.io/instance']"
+        - name: PVPOOL_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [all]
+          runAsUser: 65532
+          runAsGroup: 65532
+        volumeMounts:
+        - name: pvpool-webhook-certificate
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true
+        ports:
+        - name: https
+          containerPort: 9443
+        - name: probes
+          containerPort: 8000
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: probes
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: probes
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5

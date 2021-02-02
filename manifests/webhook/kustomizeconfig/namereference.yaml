@@ -1,0 +1,6 @@
+nameReference:
+- kind: Service
+  fieldSpecs:
+  - group: admissionregistration.k8s.io
+    kind: ValidatingWebhookConfiguration
+    path: webhooks/clientConfig/service/name

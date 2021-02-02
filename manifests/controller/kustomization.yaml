@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- generated/role.yaml
+- role.yaml
+- serviceaccount.yaml
+- clusterrolebinding.yaml
+- rolebinding.yaml
+- deployment.yaml
+configurations:
+- kustomizeconfig/nameprefix.yaml
+configMapGenerator:
+- name: pvpool-controller-config
+  files:
+  - _examples=configmap-config-_examples.txt
+commonLabels:
+  app.kubernetes.io/name: pvpool
+  app.kubernetes.io/component: controller
+  app.kubernetes.io/instance: pvpool-controller

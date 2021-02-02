@@ -1,0 +1,4 @@
+resources:
+- github.com/puppetlabs/leg/k8sutil/manifests/app/selfsignedsecret
+- github.com/puppetlabs/leg/k8sutil/manifests/app/webhookcert
+namePrefix: pvpool-

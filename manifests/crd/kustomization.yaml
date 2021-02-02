@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- generated/pvpool.puppet.com_checkouts.yaml
+- generated/pvpool.puppet.com_pools.yaml
+commonLabels:
+  app.kubernetes.io/name: pvpool
+  app.kubernetes.io/component: crd

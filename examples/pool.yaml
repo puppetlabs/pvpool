@@ -1,0 +1,18 @@
+apiVersion: pvpool.puppet.com/v1alpha1
+kind: Pool
+metadata:
+  name: test
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pvpool-test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pvpool-test
+    spec:
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 50Mi

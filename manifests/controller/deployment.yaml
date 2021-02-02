@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvpool-controller
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      pvpool.puppet.com/selector: pvpool-controller
+  template:
+    metadata:
+      labels:
+        pvpool.puppet.com/selector: pvpool-controller
+    spec:
+      serviceAccountName: pvpool-controller
+      containers:
+      - name: pvpool-controller
+        image: ko://github.com/puppetlabs/pvpool/cmd/pvpool-controller
+        env:
+        - name: PVPOOL_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: pvpool-controller-config
+              key: debug
+              optional: true
+        - name: PVPOOL_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: "metadata.labels['app.kubernetes.io/instance']"
+        - name: PVPOOL_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [all]
+          runAsUser: 65532
+          runAsGroup: 65532

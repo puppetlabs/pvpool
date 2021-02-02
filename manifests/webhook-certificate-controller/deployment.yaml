@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvpool-webhook-certificate-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      pvpool.puppet.com/selector: pvpool-webhook-certificate-controller
+  template:
+    metadata:
+      labels:
+        pvpool.puppet.com/selector: pvpool-webhook-certificate-controller
+    spec:
+      serviceAccountName: pvpool-webhook-certificate-controller
+      containers:
+      - name: pvpool-webhook-certificate-controller
+        image: ko://github.com/puppetlabs/pvpool/cmd/pvpool-webhook-certificate-controller
+        env:
+        - name: PVPOOL_DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: pvpool-webhook-certificate-controller-config
+              key: debug
+              optional: true
+        - name: PVPOOL_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: "metadata.labels['app.kubernetes.io/instance']"
+        - name: PVPOOL_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: PVPOOL_WEBHOOK_SERVICE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: pvpool-webhook-certificate-controller-config
+              key: service-name
+        - name: PVPOOL_WEBHOOK_CERTIFICATE_SECRET_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: pvpool-webhook-certificate-controller-config
+              key: certificate-secret-name
+        - name: PVPOOL_VALIDATING_WEBHOOK_CONFIGURATION_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: pvpool-webhook-certificate-controller-config
+              key: validating-webhook-configuration-name
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [all]
+          runAsUser: 65532
+          runAsGroup: 65532

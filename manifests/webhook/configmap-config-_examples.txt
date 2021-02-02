@@ -1,0 +1,10 @@
+# This section is not real configuration, but rather shows the
+# possible configuration options for the webhook server.
+
+# debug turns on extra verbosity in the container logs for the
+# webhook pods.
+debug: "false"
+
+# certificate-secret-name is the name of the Secret that contains the
+# TLS certificate for the webhook server.
+certificate-secret-name: ""

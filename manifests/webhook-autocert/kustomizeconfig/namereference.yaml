@@ -1,0 +1,11 @@
+nameReference:
+- kind: Service
+  fieldSpecs:
+  - kind: ConfigMap
+    name: pvpool-webhook-certificate-controller-config
+    path: data/service-name
+- kind: ValidatingWebhookConfiguration
+  fieldSpecs:
+  - kind: ConfigMap
+    name: pvpool-webhook-certificate-controller-config
+    path: data/validating-webhook-configuration-name
