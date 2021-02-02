@@ -7,8 +7,11 @@ configMapGenerator:
   behavior: merge
   literals:
   - debug=true
-configMapGenerator:
 - name: pvpool-webhook-config
+  behavior: merge
+  literals:
+  - debug=true
+- name: pvpool-webhook-certificate-controller-config
   behavior: merge
   literals:
   - debug=true
