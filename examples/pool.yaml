@@ -1,7 +1,7 @@
 apiVersion: pvpool.puppet.com/v1alpha1
 kind: Pool
 metadata:
-  name: test
+  name: test-pool
 spec:
   replicas: 5
   selector:

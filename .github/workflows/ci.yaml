@@ -1,0 +1,70 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KUBECONFIG: /tmp/kubeconfig
+    steps:
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '1.14'
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/go/pkg/sumdb
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Check
+      run: make check
+    - name: Install ko
+      run: |
+        curl -L https://github.com/google/ko/releases/download/v0.8.0/ko_0.8.0_Linux_x86_64.tar.gz \
+          | sudo tar -xzf - -C /bin ko
+    - name: Install k3d
+      run: curl -s https://raw.githubusercontent.com/rancher/k3d/main/install.sh | bash
+    - name: Set up Docker registry
+      run: k3d registry create registry.localhost --port 5000
+    - name: Set up Kubernetes cluster
+      run: |
+        mkdir -p /tmp/local-path-provisioner-data
+        k3d cluster create pvpool-test \
+          --registry-use k3d-registry.localhost:5000 \
+          --volume /tmp/local-path-provisioner-data:/opt/local-path-provisioner:shared
+    - name: Review Docker containers
+      run: docker ps -a
+    - id: test
+      name: Test
+      env:
+        KO_DOCKER_REPO: k3d-registry.localhost:5000
+        PVPOOL_TEST_E2E_KUBECONFIG: ${{ env.KUBECONFIG }}
+      run: make test
+    - name: Review Kubernetes objects after test failure
+      if: failure() && steps.test.outcome == 'failure'
+      run: kubectl describe -f artifacts/
+    - name: Review controller logs after test failure
+      if: failure() && steps.test.outcome == 'failure'
+      run: |
+        kubectl logs -n pvpool \
+          --selector app.kubernetes.io/component=controller \
+          --prefix \
+          --tail -1
+    - name: Review webhook logs after test failure
+      if: failure() && steps.test.outcome == 'failure'
+      run: |
+        kubectl logs -n pvpool \
+          --selector app.kubernetes.io/component=webhook \
+          --prefix \
+          --tail -1
+    - name: Review webhook certificate controller logs after test failure
+      if: failure() && steps.test.outcome == 'failure'
+      run: |
+        kubectl logs -n pvpool \
+          --selector app.kubernetes.io/component=webhook-certificate-controller \
+          --prefix \
+          --tail -1
+    - name: Build
+      run: make
