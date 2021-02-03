@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod-using-pvc-from-init-job
+spec:
+  restartPolicy: Never
+  containers:
+  - name: read
+    image: alpine:latest
+    command:
+    - cat
+    - /workspace/data.txt
+    volumeMounts:
+    - name: my-volume
+      mountPath: /workspace
+  volumes:
+  - name: my-volume
+    persistentVolumeClaim:
+      claimName: test-checkout-from-init-job-a

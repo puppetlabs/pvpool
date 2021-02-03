@@ -17,13 +17,13 @@ PVPool is currently under development and there is no official release. For now,
 
 ## Usage
 
-If you're using Rancher's [Local Path Provisioner](https://github.com/rancher/local-path-provisioner) (or have a storage class named `local-path`), you can create the pool and checkout in the `examples` directory without any modificaitons. You should end up with a set of PVCs with names starting with `test-pool-`, corresponding PVs, plus a checked out PVC starting with the name `test-checkout-a`.
+If you're using Rancher's [Local Path Provisioner](https://github.com/rancher/local-path-provisioner) (or have a storage class named `local-path`), you can create the pools and checkouts in the `examples` directory without any modifications. You should end up with a set of PVCs with names starting with `test-pool-`, corresponding PVs, plus a checked out PVC starting with the name `test-checkout-a`.
 
 ### Storage class requirements and limitations
 
 PVPool doesn't really understand storage classes that have `volumeBindingMode: "WaitForFirstConsumer"` in the sense that they're described in the Kubernetes documentation. Rather, we always ensure the PVC is bound before putting it into the pool. We do this using a job, though, so any special requirements around how pods are created (e.g., node taints) will be respected.
 
-You should be careful using storage classes that have a `reclaimPolicy` other than `"Delete`". If you do, take note that there are no restrictions on churning through many checkouts, so you may find yourself accumulating lots of stale persistent volumes.
+You should be careful using storage classes that have a `reclaimPolicy` other than `"Delete"`. If you do, take note that there are no restrictions on churning through many checkouts, so you may find yourself accumulating lots of stale persistent volumes.
 
 ### Prepopulating volumes
 
