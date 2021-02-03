@@ -256,7 +256,7 @@ func (ps *PoolState) persistScale(ctx context.Context, cl client.Client) error {
 		ps.Conds[pvpoolv1alpha1.PoolSettlement] = pvpoolv1alpha1.Condition{
 			Status:  corev1.ConditionTrue,
 			Reason:  pvpoolv1alpha1.PoolSettlementReasonSettled,
-			Message: fmt.Sprintf("All requested replicas are available to be checked out."),
+			Message: "All requested replicas are available to be checked out.",
 		}
 		fallthrough
 	default:
