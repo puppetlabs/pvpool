@@ -1,0 +1,7 @@
+apiVersion: pvpool.puppet.com/v1alpha1
+kind: Checkout
+metadata:
+  name: test-checkout-from-init-job-a
+spec:
+  poolRef:
+    name: test-pool-with-init-job

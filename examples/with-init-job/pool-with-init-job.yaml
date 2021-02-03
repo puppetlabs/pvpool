@@ -1,0 +1,37 @@
+apiVersion: pvpool.puppet.com/v1alpha1
+kind: Pool
+metadata:
+  name: test-pool-with-init-job
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pvpool-test-with-init-job
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pvpool-test-with-init-job
+    spec:
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 50Mi
+  initJob:
+    template:
+      spec:
+        backoffLimit: 2
+        activeDeadlineSeconds: 60
+        template:
+          spec:
+            containers:
+            - name: init
+              image: busybox:stable-musl
+              command:
+              - /bin/sh
+              - -c
+              - |
+                echo 'Wow, such prepopulated!' >/workspace/data.txt
+              volumeMounts:
+              - name: my-volume
+                mountPath: /workspace
+    volumeName: my-volume
