@@ -13,7 +13,24 @@ PVPool exposes two new Kubernetes resources:
 
 ## Installation
 
-PVPool is currently under development and there is no official release. For now, you should follow the [instructions for contributing to PVPool](CONTRIBUTING.md).
+PVPool is distributed as a standalone manifest and as a Kustomize base that can be modified to suit your needs.
+
+To install the latest release on your cluster:
+
+```
+$ kubectl apply -f https://github.com/puppetlabs/pvpool/releases/latest/download/pvpool-release.yaml
+```
+
+To use PVPool as a Kustomize base, you should reference the ZIP archive instead of a particular manifest. Then add it as a resource to your `kustomization.yaml`:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- https://github.com/puppetlabs/pvpool/releases/latest/download/pvpool-release.zip
+```
+
+We also distribute debug manifests and Kustomize bases. The installations are functionally identical, but in debug mode the container logging is more verbose.
 
 ## Usage
 

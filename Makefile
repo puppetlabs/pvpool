@@ -2,14 +2,15 @@
 # Commands
 #
 
-export KO ?= ko
-export KUBECTL ?= kubectl
-export GIT ?= git
-export GO ?= go
-export MKDIR_P ?= mkdir -p
-export RM_F ?= rm -f
-export SHA256SUM ?= shasum -a 256
-export SHELLCHECK ?= shellcheck
+KO ?= ko
+KUBECTL ?= kubectl
+GIT ?= git
+GO ?= go
+MKDIR_P ?= mkdir -p
+RM_F ?= rm -f
+SHA256SUM ?= shasum -a 256
+SHELLCHECK ?= shellcheck
+ZIP ?= zip
 
 #
 # Variables
@@ -43,6 +44,7 @@ versioned_artifact_kustomization_yaml = $(addsuffix /kustomization.yaml,$(call v
 build_artifact_dir = $(addprefix $(ARTIFACTS_DIR)/build/pvpool-$(PVPOOL_VERSION)/,$(1))
 build_artifact_manifest_yaml = $(foreach manifest,$(1),$(addsuffix /pvpool-$(manifest).yaml,$(call build_artifact_dir,$(manifest))))
 build_artifact_kustomization_yaml = $(addsuffix /kustomization.yaml,$(call build_artifact_dir,$(1)))
+build_artifact_archive = $(foreach manifest,$(1),$(addsuffix /pvpool-$(manifest).zip,$(call build_artifact_dir,$(manifest))))
 
 root_relative_to_dir = $(subst $(eval) ,/,$(patsubst %,..,$(subst /, ,$(1))))
 
@@ -94,9 +96,12 @@ $(call build_artifact_kustomization_yaml,$(1)): | $(call build_artifact_manifest
 	cd $(call build_artifact_dir,$(1)) \$(eval)
 		&& $(GO) run sigs.k8s.io/kustomize/kustomize/v3 create --resources $(notdir $(call build_artifact_manifest_yaml,$(1)))
 
-# The combined manifest and Kustomization rule.
+# The archive file is built from the Kustomization target and the manifest.
+$(call build_artifact_archive,$(1)): $(addsuffix .sha256.asc,$(call build_artifact_manifest_yaml,$(1))) $(call build_artifact_kustomization_yaml,$(1))
+	$(ZIP) -rj --filesync $$@ $(call build_artifact_dir,$(1))
+
 .PHONY: build-$(1)
-build-$(1): $(addsuffix .sha256.asc,$(call build_artifact_manifest_yaml,$(1))) $(call build_artifact_kustomization_yaml,$(1))
+build-$(1): $(call build_artifact_archive,$(1))
 endef # define build_artifact_manifest_yaml_rule
 
 # We create rules for each of the manifests.
@@ -125,10 +130,13 @@ apply-wait-test:: apply-test
 apply-wait: apply-wait-debug
 
 .PHONY: check
+check: export GO := $(GO)
+check: export SHELLCHECK := $(SHELLCHECK)
 check: generate
 	scripts/check
 
 .PHONY: test
+test: export GO := $(GO)
 ifneq ($(PVPOOL_TEST_E2E_KUBECONFIG),)
 test: export KUBECONFIG := $(PVPOOL_TEST_E2E_KUBECONFIG)
 test: $(if $(PVPOOL_TEST_E2E_STORAGE_CLASS_NAME),apply-wait-debug,apply-wait-test)
@@ -166,3 +174,6 @@ $(addsuffix -kustomization-yaml,$(addprefix print-build-,$(MANIFESTS))): print-b
 
 .PHONY: $(addsuffix -manifest-checksum,$(addprefix print-build-,$(MANIFESTS)))
 $(addsuffix -manifest-checksum,$(addprefix print-build-,$(MANIFESTS))): print-build-%-manifest-checksum: ; $(info $(addsuffix .sha256.asc,$(call build_artifact_manifest_yaml,$*))) @:
+
+.PHONY: $(addsuffix -archive,$(addprefix print-build-,$(MANIFESTS)))
+$(addsuffix -archive,$(addprefix print-build-,$(MANIFESTS))): print-build-%-archive: ; $(info $(call build_artifact_archive,$*)) @:

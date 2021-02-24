@@ -96,7 +96,6 @@ jobs:
         prerelease: ${{ steps.read-changelog.outputs.status == 'prereleased' }}
         draft: ${{ steps.read-changelog.outputs.status == 'unreleased' }}
     outputs:
-      version: ${{ steps.get-tag-version.outputs.result }}
       upload-url: ${{ steps.create-release.outputs.upload_url }}
   release-assets:
     needs: release
@@ -110,8 +109,6 @@ jobs:
       with:
         project_id: pvpool
         service_account_key: ${{ secrets.GCP_SA_KEY }}
-        export_default_credentials: true
-        credentials_file_path: ${{ runner.temp }}/gcp-sa-key.json
     - name: Authenticate to Google Cloud Registry
       run: gcloud -q auth configure-docker
     - uses: actions/setup-go@v2
@@ -137,30 +134,15 @@ jobs:
     - name: Get asset information
       id: get-asset-information
       run: |
-        dir="$( make print-build-${{ matrix.manifest }}-dir )"
+        for target in manifest-checksum manifest-yaml archive; do
+          target_path="$( make "print-build-${{ matrix.manifest }}-${target}" )"
+          target_name="$( basename "${target_path}" )"
+          target_media_type="$( file -b --mime-type "${target_path}" )"
 
-        echo "::set-output name=dir::${dir}"
-
-        manifest_checksum_path="$( make print-build-${{ matrix.manifest }}-manifest-checksum )"
-        manifest_checksum_name="$( basename "${manifest_checksum_path}" )"
-        manifest_checksum_media_type="$( file -b --mime-type "${manifest_checksum_path}" )"
-
-        echo "::set-output name=manifest-checksum-path::${manifest_checksum_path}"
-        echo "::set-output name=manifest-checksum-name::${manifest_checksum_name}"
-        echo "::set-output name=manifest-checksum-media-type::${manifest_checksum_media_type}"
-
-        manifest_yaml_path="$( make print-build-${{ matrix.manifest }}-manifest-yaml )"
-        manifest_yaml_name="$( basename "${manifest_yaml_path}" )"
-        manifest_yaml_media_type="$( file -b --mime-type "${manifest_yaml_path}" )"
-
-        echo "::set-output name=manifest-yaml-path::${manifest_yaml_path}"
-        echo "::set-output name=manifest-yaml-name::${manifest_yaml_name}"
-        echo "::set-output name=manifest-yaml-media-type::${manifest_yaml_media_type}"
-    - name: Upload manifest assets to Google Cloud Storage
-      uses: google-github-actions/upload-cloud-storage@main
-      with:
-        path: ${{ steps.get-asset-information.outputs.dir }}
-        destination: pvpool-releases/pvpool-${{ needs.release.outputs.version }}
+          echo "::set-output name=${target}-path::${target_path}"
+          echo "::set-output name=${target}-name::${target_name}"
+          echo "::set-output name=${target}-media-type::${target_media_type}"
+        done
     - name: Upload manifest checksum asset to GitHub release
       uses: actions/upload-release-asset@v1
       env:
@@ -179,3 +161,12 @@ jobs:
         asset_path: ${{ steps.get-asset-information.outputs.manifest-yaml-path }}
         asset_name: ${{ steps.get-asset-information.outputs.manifest-yaml-name }}
         asset_content_type: ${{ steps.get-asset-information.outputs.manifest-yaml-media-type }}
+    - name: Upload archive asset to GitHub release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.release.outputs.upload-url }}
+        asset_path: ${{ steps.get-asset-information.outputs.archive-path }}
+        asset_name: ${{ steps.get-asset-information.outputs.archive-name }}
+        asset_content_type: ${{ steps.get-asset-information.outputs.archive-media-type }}
