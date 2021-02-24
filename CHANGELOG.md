@@ -6,8 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.1.0] - 2021-02-24
+
 ### Added
 
 * Initial release.
 
-[Unreleased]: https://github.com/puppetlabs/pvpool/compare/5aad04bb4bcc20306103a240b676ea310d6732af...HEAD
+[Unreleased]: https://github.com/puppetlabs/pvpool/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/puppetlabs/pvpool/compare/5aad04bb4bcc20306103a240b676ea310d6732af...v0.1.0

@@ -111,6 +111,7 @@ jobs:
         project_id: pvpool
         service_account_key: ${{ secrets.GCP_SA_KEY }}
         export_default_credentials: true
+        credentials_file_path: ${{ runner.temp }}/gcp-sa-key.json
     - name: Authenticate to Google Cloud Registry
       run: gcloud -q auth configure-docker
     - uses: actions/setup-go@v2
