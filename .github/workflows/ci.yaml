@@ -44,7 +44,7 @@ jobs:
       run: make test
     - name: Review Kubernetes objects after test failure
       if: failure() && steps.test.outcome == 'failure'
-      run: kubectl describe -f artifacts/
+      run: kubectl describe -f "$( make print-build-test-manifest-yaml )"
     - name: Review controller logs after test failure
       if: failure() && steps.test.outcome == 'failure'
       run: |
@@ -68,3 +68,113 @@ jobs:
           --tail -1
     - name: Build
       run: make
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get tag version
+      id: get-tag-version
+      uses: actions/github-script@v3
+      with:
+        result-encoding: string
+        script: |
+          return context.ref.replace(/^refs\/tags\/v/, '');
+    - uses: mindsers/changelog-reader-action@v2
+      id: read-changelog
+      with:
+        version: ${{ steps.get-tag-version.outputs.result }}
+    - uses: actions/create-release@v1
+      id: create-release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: v${{ steps.read-changelog.outputs.version }}
+        body: ${{ steps.read-changelog.outputs.changes }}
+        prerelease: ${{ steps.read-changelog.outputs.status == 'prereleased' }}
+        draft: ${{ steps.read-changelog.outputs.status == 'unreleased' }}
+    outputs:
+      version: ${{ steps.get-tag-version.outputs.result }}
+      upload-url: ${{ steps.create-release.outputs.upload_url }}
+  release-assets:
+    needs: release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        manifest: [release, debug]
+    steps:
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@master
+      with:
+        project_id: pvpool
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+    - name: Authenticate to Google Cloud Registry
+      run: gcloud -q auth configure-docker
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '1.14'
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/go/pkg/sumdb
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Install ko
+      run: |
+        curl -L https://github.com/google/ko/releases/download/v0.8.0/ko_0.8.0_Linux_x86_64.tar.gz \
+          | sudo tar -xzf - -C /bin ko
+    - name: Build
+      env:
+        KO_DOCKER_REPO: gcr.io/pvpool
+      run: make build-${{ matrix.manifest }}
+    - name: Get asset information
+      id: get-asset-information
+      run: |
+        dir="$( make print-build-${{ matrix.manifest }}-dir )"
+
+        echo "::set-output name=dir::${dir}"
+
+        manifest_checksum_path="$( make print-build-${{ matrix.manifest }}-manifest-checksum )"
+        manifest_checksum_name="$( basename "${manifest_checksum_path}" )"
+        manifest_checksum_media_type="$( file -b --mime-type "${manifest_checksum_path}" )"
+
+        echo "::set-output name=manifest-checksum-path::${manifest_checksum_path}"
+        echo "::set-output name=manifest-checksum-name::${manifest_checksum_name}"
+        echo "::set-output name=manifest-checksum-media-type::${manifest_checksum_media_type}"
+
+        manifest_yaml_path="$( make print-build-${{ matrix.manifest }}-manifest-yaml )"
+        manifest_yaml_name="$( basename "${manifest_yaml_path}" )"
+        manifest_yaml_media_type="$( file -b --mime-type "${manifest_yaml_path}" )"
+
+        echo "::set-output name=manifest-yaml-path::${manifest_yaml_path}"
+        echo "::set-output name=manifest-yaml-name::${manifest_yaml_name}"
+        echo "::set-output name=manifest-yaml-media-type::${manifest_yaml_media_type}"
+    - name: Upload manifest assets to Google Cloud Storage
+      uses: google-github-actions/upload-cloud-storage@main
+      with:
+        path: ${{ steps.get-asset-information.outputs.dir }}
+        destination: pvpool-releases/pvpool-${{ needs.release.outputs.version }}
+    - name: Upload manifest checksum asset to GitHub release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.release.outputs.upload-url }}
+        asset_path: ${{ steps.get-asset-information.outputs.manifest-checksum-path }}
+        asset_name: ${{ steps.get-asset-information.outputs.manifest-checksum-name }}
+        asset_content_type: ${{ steps.get-asset-information.outputs.manifest-checksum-media-type }}
+    - name: Upload manifest YAML asset to GitHub release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.release.outputs.upload-url }}
+        asset_path: ${{ steps.get-asset-information.outputs.manifest-yaml-path }}
+        asset_name: ${{ steps.get-asset-information.outputs.manifest-yaml-name }}
+        asset_content_type: ${{ steps.get-asset-information.outputs.manifest-yaml-media-type }}

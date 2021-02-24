@@ -82,6 +82,7 @@ generate: | $(ARTIFACTS_DIR)
 
 define build_artifact_manifest_yaml_rule
 # The releaseable manifest file for the manifest $(1). Always rebuilt.
+$(call build_artifact_manifest_yaml,$(1)): export CGO_ENABLED := 0
 $(call build_artifact_manifest_yaml,$(1)): generate $(call build_artifact_dir,$(1)) $(call versioned_artifact_kustomization_yaml,$(1)) .FORCE
 	$(GO) run sigs.k8s.io/kustomize/kustomize/v3 build $(call versioned_artifact_dir,$(1)) \$(eval)
 		| $(KO) resolve -f - >$$@
@@ -140,5 +141,28 @@ clean:
 	$(RM_F) -r $(ARTIFACTS_DIR)/
 	$(GO) clean -testcache ./...
 
+# This target lets us conditionally check whether we should rebuild a given file
+# without marking that file as .PHONY.
 .PHONY: .FORCE
 .FORCE:
+
+# The following helper targets just let us make informed decisions about
+# artifacts.
+
+.PHONY: print-version
+print-version: ; $(info $(PVPOOL_VERSION)) @:
+
+.PHONY: print-build-dir
+print-build-dir: ; $(info $(ARTIFACTS_DIR)/build/pvpool-$(PVPOOL_VERSION)) @:
+
+.PHONY: $(addsuffix -dir,$(addprefix print-build-,$(MANIFESTS)))
+$(addsuffix -dir,$(addprefix print-build-,$(MANIFESTS))): print-build-%-dir: ; $(info $(call build_artifact_dir,$*)) @:
+
+.PHONY: $(addsuffix -manifest-yaml,$(addprefix print-build-,$(MANIFESTS)))
+$(addsuffix -manifest-yaml,$(addprefix print-build-,$(MANIFESTS))): print-build-%-manifest-yaml: ; $(info $(call build_artifact_manifest_yaml,$*)) @:
+
+.PHONY: $(addsuffix -kustomization-yaml,$(addprefix print-build-,$(MANIFESTS)))
+$(addsuffix -kustomization-yaml,$(addprefix print-build-,$(MANIFESTS))): print-build-%-kustomization-yaml: ; $(info $(call build_artifact_kustomization_yaml,$*)) @:
+
+.PHONY: $(addsuffix -manifest-checksum,$(addprefix print-build-,$(MANIFESTS)))
+$(addsuffix -manifest-checksum,$(addprefix print-build-,$(MANIFESTS))): print-build-%-manifest-checksum: ; $(info $(addsuffix .sha256.asc,$(call build_artifact_manifest_yaml,$*))) @:
