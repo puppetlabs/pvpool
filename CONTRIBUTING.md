@@ -21,18 +21,18 @@ Once you have ko and a registry, you can build and install PVPool in a few ways.
 
 * Release: The PVPool controller, webhook, and automatic certificate generation as designed for packaging for general consumption.
 
-  * Build: `make build-manifest-release`
-  * Install: `make apply-release`
+  * Build: `make build-release`
+  * Install: `make apply-wait-release`
 
 * Debug: Same as release, but the logs for all PVPool pods are set to provide extra verbosity.
 
-  * Build: `make build-manfiest-debug`
-  * Install: `make apply-debug` (or just `make apply`)
+  * Build: `make build-debug`
+  * Install: `make apply-wait-debug` (or just `make apply-wait`)
 
 * Test: Same as debug, but Rancher's [Local Path Provisioner](https://github.com/rancher/local-path-provisioner) is also installed to make running end-to-end tests easier.
 
-  * Build: `make build-manifest-test`
-  * Install: `make apply-test`
+  * Build: `make build-test`
+  * Install: `make apply-wait-test`
 
 When you make a code change you want to deploy, simply rerun the relevant build or apply command. You do not need to manually manage any Docker images.
 

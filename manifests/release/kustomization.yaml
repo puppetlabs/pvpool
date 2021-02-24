@@ -13,8 +13,8 @@ commonLabels:
   app.kubernetes.io/name: pvpool
 configMapGenerator:
 - name: pvpool-environment
-  envs:
-  - environment.properties
+  literals:
+  - version=unknown
 generatorOptions:
   disableNameSuffixHash: true
 vars:
@@ -24,4 +24,4 @@ vars:
     kind: ConfigMap
     name: pvpool-environment
   fieldref:
-    fieldpath: data.PVPOOL_VERSION
+    fieldpath: data.version
