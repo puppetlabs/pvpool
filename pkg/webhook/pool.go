@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// +kubebuilder:webhook:name=pool.validate.webhook.pvpool.puppet.com,groups=pvpool.puppet.com,versions=v1alpha1,resources=pools,verbs=create;update,path=/validate-pvpool-puppet-com-v1alpha1-pool,failurePolicy=fail,mutating=false,sideEffects=None,admissionReviewVersions=v1
+// +kubebuilder:webhook:name=pool.validate.webhook.pvpool.puppet.com,groups=pvpool.puppet.com,versions=v1alpha1,resources=pools,verbs=create;update,path=/validate-pvpool-puppet-com-v1alpha1-pool,failurePolicy=fail,mutating=false,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 // PoolValidator extends the Pool type to provide validation.
 //
