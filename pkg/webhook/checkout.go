@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// +kubebuilder:webhook:name=checkout.validate.webhook.pvpool.puppet.com,groups=pvpool.puppet.com,versions=v1alpha1,resources=checkouts,verbs=create;update,path=/validate-pvpool-puppet-com-v1alpha1-checkout,failurePolicy=fail,mutating=false,sideEffects=None,admissionReviewVersions=v1
+// +kubebuilder:webhook:name=checkout.validate.webhook.pvpool.puppet.com,groups=pvpool.puppet.com,versions=v1alpha1,resources=checkouts,verbs=create;update,path=/validate-pvpool-puppet-com-v1alpha1-checkout,failurePolicy=fail,mutating=false,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 // CheckoutValidatorHandler performs validation for the Checkout type.

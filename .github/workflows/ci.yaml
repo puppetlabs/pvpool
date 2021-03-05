@@ -3,6 +3,15 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        k3s-image:
+        - 'rancher/k3s:v1.20.4-k3s1'
+        - 'rancher/k3s:v1.19.8-k3s1'
+        - 'rancher/k3s:v1.18.16-k3s1'
+        - 'rancher/k3s:v1.17.17-k3s1'
+        - 'rancher/k3s:v1.16.15-k3s1'
     env:
       KUBECONFIG: /tmp/kubeconfig
     steps:
@@ -32,6 +41,7 @@ jobs:
       run: |
         mkdir -p /tmp/local-path-provisioner-data
         k3d cluster create pvpool-test \
+          --image ${{ matrix.k3s-image }} \
           --registry-use k3d-registry.localhost:5000 \
           --volume /tmp/local-path-provisioner-data:/opt/local-path-provisioner:shared
     - name: Review Docker containers
