@@ -657,8 +657,8 @@ github.com/puppetlabs/leg/datastructure v0.1.0 h1:0703wQJ71etqsPOr+vfiTBHkq0+tVV
 github.com/puppetlabs/leg/datastructure v0.1.0/go.mod h1:4Kwk/83hkiR1smN1gRsi0LJDgVDbD672JpWjRPBVka8=
 github.com/puppetlabs/leg/errmap v0.1.0 h1:1oH50d/sch1kB5JuIRrLf0hg9gSr5pfAmTUc6o8CtZQ=
 github.com/puppetlabs/leg/errmap v0.1.0/go.mod h1:8oVNaeaaprDjbMYWHj5lLHsD1nsnKZbv0Jw+SjoJ6hY=
-github.com/puppetlabs/leg/k8sutil v0.2.0 h1:5W03D5KHydf1vW0SfRwHwULJQbUKRCd0v+nSbRiOsTs=
-github.com/puppetlabs/leg/k8sutil v0.2.0/go.mod h1:+li1P4+OuRsaQxOMv8It+1fwmv77qOPAZfhCWidcPJA=
+github.com/puppetlabs/leg/k8sutil v0.3.2 h1:U0EWaKqieC4tEclMa4Jc9+2ZPKnwiUx1I9B0ijmdP5U=
+github.com/puppetlabs/leg/k8sutil v0.3.2/go.mod h1:5LN5B926v3QNyCQa8IYYIoFS+4f2ak2Mg0LHdIPFQZU=
 github.com/puppetlabs/leg/lifecycle v0.2.0 h1:WYaQF+mdW8Wy+tRHkEE9175Bhkd3zJ7i0qnOQkb+BmY=
 github.com/puppetlabs/leg/lifecycle v0.2.0/go.mod h1:QtYNNukWpkcLWZAWcM9tVxcWfqn9mULH5J3dCkMqzGk=
 github.com/puppetlabs/leg/logging v0.1.0 h1:G8M2w3izYEtoaH+d3rIJZ9iLX2oW2T/jO+J4l+T0Ieo=
@@ -669,8 +669,8 @@ github.com/puppetlabs/leg/mathutil v0.1.0 h1:9O/fsCWA0oEybKLtxKOPGl1lHA2etLbopwk
 github.com/puppetlabs/leg/mathutil v0.1.0/go.mod h1:1Ni3bNk/721eP9PAhkTsx2CoXUEP636UKEx5mIlph3s=
 github.com/puppetlabs/leg/stringutil v0.1.0 h1:tvU0pPXtgZ29xSqMxIuZcEfgVqMif6WDQDxmcKxUwno=
 github.com/puppetlabs/leg/stringutil v0.1.0/go.mod h1:xIQbHjzTxuqVz/GpY5ReCqxGWptIceNV1vfvAPFDtog=
-github.com/puppetlabs/leg/timeutil v0.2.0 h1:f5Dbivofe8zoFu3GxMopNeCI2x0rlKq6dJqZ1t10/b8=
-github.com/puppetlabs/leg/timeutil v0.2.0/go.mod h1:0O728lh6OxaBE6bJVFuPTUpCrtAb33g0Ne8DwHgZOr8=
+github.com/puppetlabs/leg/timeutil v0.3.0 h1:7JUYWWW8bvSRU7EcEBVmkDv2gTb1uLE/F7hnEWljfQc=
+github.com/puppetlabs/leg/timeutil v0.3.0/go.mod h1:FHkZ9rYegF0STjS4az6hsjdvcBHcG+FB4CsY5mx1DfI=
 github.com/qri-io/starlib v0.4.2-0.20200213133954-ff2e8cd5ef8d h1:K6eOUihrFLdZjZnA4XlRp864fmWXv9YTIk7VPLhRacA=
 github.com/qri-io/starlib v0.4.2-0.20200213133954-ff2e8cd5ef8d/go.mod h1:7DPO4domFU579Ga6E61sB9VFNaniPVwJP5C4bBCu3wA=
 github.com/quasilyte/go-consistent v0.0.0-20190521200055-c6f3937de18c/go.mod h1:5STLWrekHfjyYwxBRVRXNOSewLJ3PWfDJd1VyTS21fI=
@@ -681,7 +681,6 @@ github.com/quasilyte/regex/syntax v0.0.0-20200407221936-30656e2c4a95/go.mod h1:r
 github.com/rancher/remotedialer v0.2.5 h1:rNMMcJp5fU7FZ3wGFKSmDrXrSt8MYo5na4CzXddIr2A=
 github.com/rancher/remotedialer v0.2.5/go.mod h1:dbzn9NF1JWbGEHL6Q/1KG4KFROILiY/j6wmfF1Np3fk=
 github.com/reflect/raymond v0.0.0-20190227215356-5fa3955f4a50/go.mod h1:Bmc/S4QVVTw9ZH5y5JLDKbgeykqJLnSiUqtQ9SaHjmQ=
-github.com/reflect/xparse v0.0.0-20171128034418-ab29bdc5e11c/go.mod h1:tqAg+37u8qXKZZ1QaXWnJ18evc8C6euGUAa4dQpC1gk=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.5.2/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=

@@ -236,6 +236,7 @@ func ConfigureCheckoutState(cs *CheckoutState) (*CheckoutState, error) {
 		Name:       cs.PersistentVolumeClaim.Key.Name,
 		UID:        cs.PersistentVolumeClaim.Object.GetUID(),
 	}
+	cs.PersistentVolumeClaim.Object.Spec.StorageClassName = &cs.PersistentVolume.Object.Spec.StorageClassName
 	cs.PersistentVolumeClaim.Object.Spec.VolumeName = cs.PersistentVolume.Name
 	cs.PersistentVolumeClaim.Object.Spec.AccessModes = cs.Checkout.Object.Spec.AccessModes
 	cs.PersistentVolumeClaim.Object.Spec.Resources = corev1.ResourceRequirements{
