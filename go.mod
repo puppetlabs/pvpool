@@ -6,10 +6,10 @@ require (
 	github.com/golangci/golangci-lint v1.36.0
 	github.com/google/uuid v1.1.2
 	github.com/puppetlabs/leg/errmap v0.1.0
-	github.com/puppetlabs/leg/k8sutil v0.2.0
+	github.com/puppetlabs/leg/k8sutil v0.3.2
 	github.com/puppetlabs/leg/mainutil v0.1.2
 	github.com/puppetlabs/leg/mathutil v0.1.0
-	github.com/puppetlabs/leg/timeutil v0.2.0
+	github.com/puppetlabs/leg/timeutil v0.3.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.7.0
 	gotest.tools/gotestsum v1.6.1

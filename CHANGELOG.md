@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+* Correctly copy the StorageClass of a persistent volume to a corresponding checkout's claim.
+
 ## [0.1.2] - 2021-03-05
 
 ### Changed
