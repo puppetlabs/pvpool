@@ -177,9 +177,11 @@ func ConfigurePoolReplica(pr *PoolReplica) *PoolReplica {
 		// provisioning.
 		pvc.Spec.VolumeName = ""
 
-		// A PVC in the pool should always be RWO.
-		pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{
-			corev1.ReadWriteOnce,
+		// We default to RWO, but pools may request other modes if they want.
+		if len(pvc.Spec.AccessModes) == 0 {
+			pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			}
 		}
 	}
 
