@@ -71,20 +71,25 @@ func (cs *CheckoutState) loadFromVolumeName(ctx context.Context, cl client.Clien
 		Namespace: volume.Object.Spec.ClaimRef.Namespace,
 		Name:      volume.Object.Spec.ClaimRef.Name,
 	})
-	if _, err := claim.Load(ctx, cl); err != nil {
+	if ok, err := claim.Load(ctx, cl); err != nil {
 		return err
+	} else if !ok || !claim.Object.GetDeletionTimestamp().IsZero() {
+		// The claim was deleted. We need to pick a new one from the pool as we
+		// risk the volume moving to a Terminating state here.
+		klog.InfoS("checkout state: load: persistent volume claim is being deleted (not using)", "checkout", cs.Checkout.Key, "pvc", claim.Key, "pv", volume.Name)
+		return nil
 	}
 
 	if ctrl := metav1.GetControllerOf(claim.Object); ctrl != nil {
 		switch {
 		case ctrl.UID == cs.Checkout.Object.GetUID():
-			klog.V(4).InfoS("checkout state: load: persistent volume is used by this checkout", "checkout", cs.Checkout.Key, "pv", volume.Name)
+			klog.V(4).InfoS("checkout state: load: persistent volume is used by this checkout", "checkout", cs.Checkout.Key, "pvc", claim.Key, "pv", volume.Name)
 		case schema.FromAPIVersionAndKind(ctrl.APIVersion, ctrl.Kind) == obj.CheckoutKind:
 			// Race condition where the claim has been reassigned from under us.
-			klog.InfoS("checkout state: load: persistent volume stolen (not using)", "checkout", cs.Checkout.Key, "pv", volume.Name)
+			klog.InfoS("checkout state: load: persistent volume stolen (not using)", "checkout", cs.Checkout.Key, "pvc", claim.Key, "pv", volume.Name)
 			return nil
 		default:
-			klog.V(4).InfoS("checkout state: load: persistent volume is still in pool", "checkout", cs.Checkout.Key, "pv", volume.Name)
+			klog.V(4).InfoS("checkout state: load: persistent volume is still in pool", "checkout", cs.Checkout.Key, "pvc", claim.Key, "pv", volume.Name)
 		}
 	}
 

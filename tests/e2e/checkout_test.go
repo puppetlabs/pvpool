@@ -296,6 +296,9 @@ func TestCheckoutPVCReplacement(t *testing.T) {
 			prevUID := pvc.Object.GetUID()
 			require.NotEmpty(t, prevUID)
 
+			prevVolumeName := pvc.Object.Spec.VolumeName
+			require.NotEmpty(t, prevVolumeName)
+
 			ok, err = pvc.Delete(ctx, eit.ControllerClient)
 			require.NoError(t, err)
 			require.True(t, ok)
@@ -311,8 +314,15 @@ func TestCheckoutPVCReplacement(t *testing.T) {
 					return false, fmt.Errorf("waiting for PVC deletion")
 				}
 
+				if pvc.Object.Status.Phase != corev1.ClaimBound {
+					return false, fmt.Errorf("waiting for PVC to bind, current phase is %s", pvc.Object.Status.Phase)
+				}
+
 				return true, nil
 			}))
+
+			require.NotEmpty(t, pvc.Object.Spec.VolumeName)
+			require.NotEqual(t, prevVolumeName, pvc.Object.Spec.VolumeName)
 		})
 	})
 }
