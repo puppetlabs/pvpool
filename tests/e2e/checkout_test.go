@@ -34,7 +34,7 @@ func TestCheckout(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test-checkout",
 			}
-			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, CreatePoolWithReplicas(3))
+			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(3))
 			_ = eit.CheckoutHelpers.RequireCreateCheckoutThenWaitCheckedOut(ctx, checkoutKey, client.ObjectKey{Name: poolKey.Name})
 			_ = eit.PoolHelpers.RequireWaitSettled(ctx, p)
 		})
@@ -56,7 +56,7 @@ func TestCheckoutAcrossNamespaces(t *testing.T) {
 					Namespace: ns2.GetName(),
 					Name:      "test-checkout",
 				}
-				p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, CreatePoolWithReplicas(3))
+				p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(3))
 				_ = eit.CheckoutHelpers.RequireCreateCheckoutThenWaitCheckedOut(ctx, checkoutKey, poolKey)
 				_ = eit.PoolHelpers.RequireWaitSettled(ctx, p)
 			})
@@ -74,7 +74,7 @@ func TestCheckoutsPoolAvailability(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test-pool",
 			}
-			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, CreatePoolWithReplicas(3))
+			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(3))
 			for i := 1; i <= 5; i++ {
 				checkoutKey := client.ObjectKey{
 					Namespace: ns.GetName(),
@@ -91,7 +91,7 @@ func TestCheckoutWithInitJob(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	tpl := &pvpoolv1alpha1.MountJob{
+	tpl := pvpoolv1alpha1.MountJob{
 		Template: pvpoolv1alpha1.JobTemplate{
 			Spec: batchv1.JobSpec{
 				Template: corev1.PodTemplateSpec{
@@ -129,7 +129,7 @@ func TestCheckoutWithInitJob(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test-checkout",
 			}
-			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, CreatePoolWithInitJob(tpl))
+			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithInitJob(tpl))
 			co := eit.CheckoutHelpers.RequireCreateCheckoutThenWaitCheckedOut(ctx, checkoutKey, poolKey)
 
 			// Create a pod that uses the PVC.
@@ -202,7 +202,7 @@ func TestCheckoutBeforePoolCreation(t *testing.T) {
 				Name:      "test-checkout",
 			}
 			co := eit.CheckoutHelpers.RequireCreateCheckout(ctx, checkoutKey, poolKey)
-			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, CreatePoolWithReplicas(3))
+			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(3))
 			_ = eit.CheckoutHelpers.RequireWaitCheckedOut(ctx, co)
 		})
 	})
@@ -222,11 +222,47 @@ func TestCheckoutBeforePoolHasReplicas(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test-checkout",
 			}
-			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, CreatePoolWithReplicas(0))
+			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(0))
 			co := eit.CheckoutHelpers.RequireCreateCheckout(ctx, checkoutKey, poolKey)
 			p = eit.PoolHelpers.RequireScalePoolThenWaitSettled(ctx, p, 3)
 			_ = eit.CheckoutHelpers.RequireWaitCheckedOut(ctx, co)
 			_ = eit.PoolHelpers.RequireWaitSettled(ctx, p)
+		})
+	})
+}
+
+func TestCheckoutAccessModes(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	WithEnvironmentInTest(t, func(eit *EnvironmentInTest) {
+		eit.WithNamespace(ctx, func(ns *corev1.Namespace) {
+			poolKey := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-pool",
+			}
+			checkoutKey := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-checkout",
+			}
+
+			// Create pool in RWO.
+			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(3), WithAccessModes{corev1.ReadWriteOnce})
+
+			// Create checkout in ROX. The volume should transition to the
+			// correct access mode.
+			co := eit.CheckoutHelpers.RequireCreateCheckoutThenWaitCheckedOut(ctx, checkoutKey, poolKey, WithAccessModes{corev1.ReadOnlyMany})
+
+			// Get the corresponding PVC and check its access mode.
+			pvc := corev1obj.NewPersistentVolumeClaim(client.ObjectKey{
+				Namespace: co.Object.GetNamespace(),
+				Name:      co.Object.Status.VolumeClaimRef.Name,
+			})
+			ok, err := pvc.Load(ctx, eit.ControllerClient)
+			require.NoError(t, err)
+			require.True(t, ok)
+			require.Equal(t, []corev1.PersistentVolumeAccessMode{corev1.ReadOnlyMany}, pvc.Object.Spec.AccessModes)
+			require.Equal(t, []corev1.PersistentVolumeAccessMode{corev1.ReadOnlyMany}, pvc.Object.Status.AccessModes)
 		})
 	})
 }
@@ -245,7 +281,7 @@ func TestCheckoutPVCReplacement(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test-checkout",
 			}
-			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, CreatePoolWithReplicas(3))
+			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(3))
 			co := eit.CheckoutHelpers.RequireCreateCheckoutThenWaitCheckedOut(ctx, checkoutKey, poolKey)
 
 			// Delete the underlying PVC.
@@ -291,7 +327,7 @@ func TestCheckoutRBAC(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test-pool",
 			}
-			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, CreatePoolWithReplicas(3))
+			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(3))
 
 			// Create a service account and set up impersonation of it.
 			sa := corev1obj.NewServiceAccount(client.ObjectKey{

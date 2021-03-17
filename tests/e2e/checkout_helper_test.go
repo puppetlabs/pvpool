@@ -41,13 +41,31 @@ func (ch *CheckoutHelpers) RequireWaitCheckedOut(ctx context.Context, co *obj.Ch
 	return co
 }
 
-func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey client.ObjectKey) (*obj.Checkout, error) {
+type CreateCheckoutOptions struct {
+	AccessModes []corev1.PersistentVolumeAccessMode
+}
+
+type CreateCheckoutOption interface {
+	ApplyToCreateCheckoutOptions(target *CreateCheckoutOptions)
+}
+
+func (o *CreateCheckoutOptions) ApplyOptions(opts []CreateCheckoutOption) {
+	for _, opt := range opts {
+		opt.ApplyToCreateCheckoutOptions(o)
+	}
+}
+
+func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) (*obj.Checkout, error) {
+	o := &CreateCheckoutOptions{}
+	o.ApplyOptions(opts)
+
 	co := obj.NewCheckout(key)
 	co.Object.Spec = pvpoolv1alpha1.CheckoutSpec{
 		PoolRef: pvpoolv1alpha1.PoolReference{
 			Namespace: poolKey.Namespace,
 			Name:      poolKey.Name,
 		},
+		AccessModes: o.AccessModes,
 	}
 	if err := co.Persist(ctx, ch.eit.ControllerClient); err != nil {
 		return nil, err
@@ -56,14 +74,14 @@ func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey clie
 	return co, nil
 }
 
-func (ch *CheckoutHelpers) RequireCreateCheckout(ctx context.Context, key, poolKey client.ObjectKey) *obj.Checkout {
-	co, err := ch.CreateCheckout(ctx, key, poolKey)
+func (ch *CheckoutHelpers) RequireCreateCheckout(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) *obj.Checkout {
+	co, err := ch.CreateCheckout(ctx, key, poolKey, opts...)
 	require.NoError(ch.eit.t, err)
 	return co
 }
 
-func (ch *CheckoutHelpers) CreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey) (*obj.Checkout, error) {
-	co, err := ch.CreateCheckout(ctx, key, poolKey)
+func (ch *CheckoutHelpers) CreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) (*obj.Checkout, error) {
+	co, err := ch.CreateCheckout(ctx, key, poolKey, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +89,6 @@ func (ch *CheckoutHelpers) CreateCheckoutThenWaitCheckedOut(ctx context.Context,
 	return ch.WaitCheckedOut(ctx, co)
 }
 
-func (ch *CheckoutHelpers) RequireCreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey) *obj.Checkout {
-	return ch.RequireWaitCheckedOut(ctx, ch.RequireCreateCheckout(ctx, key, poolKey))
+func (ch *CheckoutHelpers) RequireCreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) *obj.Checkout {
+	return ch.RequireWaitCheckedOut(ctx, ch.RequireCreateCheckout(ctx, key, poolKey, opts...))
 }

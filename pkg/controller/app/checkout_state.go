@@ -229,6 +229,7 @@ func ConfigureCheckoutState(cs *CheckoutState) (*CheckoutState, error) {
 	}
 
 	// Set up the PV to point at our claim.
+	cs.PersistentVolume.Object.Spec.AccessModes = cs.Checkout.Object.Spec.AccessModes
 	cs.PersistentVolume.Object.Spec.ClaimRef = &corev1.ObjectReference{
 		APIVersion: corev1obj.PersistentVolumeClaimKind.GroupVersion().String(),
 		Kind:       corev1obj.PersistentVolumeClaimKind.Kind,
@@ -236,6 +237,8 @@ func ConfigureCheckoutState(cs *CheckoutState) (*CheckoutState, error) {
 		Name:       cs.PersistentVolumeClaim.Key.Name,
 		UID:        cs.PersistentVolumeClaim.Object.GetUID(),
 	}
+
+	// Set up the PVC to point at the PV.
 	cs.PersistentVolumeClaim.Object.Spec.StorageClassName = &cs.PersistentVolume.Object.Spec.StorageClassName
 	cs.PersistentVolumeClaim.Object.Spec.VolumeName = cs.PersistentVolume.Name
 	cs.PersistentVolumeClaim.Object.Spec.AccessModes = cs.Checkout.Object.Spec.AccessModes

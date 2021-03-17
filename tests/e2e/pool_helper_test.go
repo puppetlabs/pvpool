@@ -49,8 +49,9 @@ func (ph *PoolHelpers) RequireWaitSettled(ctx context.Context, p *obj.Pool) *obj
 }
 
 type CreatePoolOptions struct {
-	Replicas *int32
-	InitJob  *pvpoolv1alpha1.MountJob
+	Replicas    *int32
+	AccessModes []corev1.PersistentVolumeAccessMode
+	InitJob     *pvpoolv1alpha1.MountJob
 }
 
 type CreatePoolOption interface {
@@ -61,28 +62,6 @@ func (o *CreatePoolOptions) ApplyOptions(opts []CreatePoolOption) {
 	for _, opt := range opts {
 		opt.ApplyToCreatePoolOptions(o)
 	}
-}
-
-type CreatePoolOptionFunc func(target *CreatePoolOptions)
-
-var _ CreatePoolOption = CreatePoolOptionFunc(nil)
-
-func (of CreatePoolOptionFunc) ApplyToCreatePoolOptions(target *CreatePoolOptions) {
-	of(target)
-}
-
-type CreatePoolWithReplicas int32
-
-var _ CreatePoolOption = CreatePoolWithReplicas(0)
-
-func (wr CreatePoolWithReplicas) ApplyToCreatePoolOptions(target *CreatePoolOptions) {
-	target.Replicas = (*int32)(&wr)
-}
-
-func CreatePoolWithInitJob(j *pvpoolv1alpha1.MountJob) CreatePoolOption {
-	return CreatePoolOptionFunc(func(target *CreatePoolOptions) {
-		target.InitJob = j
-	})
 }
 
 func (ph *PoolHelpers) CreatePool(ctx context.Context, key client.ObjectKey, opts ...CreatePoolOption) (*obj.Pool, error) {
@@ -104,6 +83,7 @@ func (ph *PoolHelpers) CreatePool(ctx context.Context, key client.ObjectKey, opt
 				},
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes:      o.AccessModes,
 				StorageClassName: pointer.StringPtr(ph.eit.StorageClassName),
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
