@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 * Copy the `AccessModes` requested in a checkout to the checkout's volume.
+* A checkout always acquires a new volume from the pool if the claim of the volume it references is deleted.
 
 ## [0.1.4] - 2021-03-16
 
