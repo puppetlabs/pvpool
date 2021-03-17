@@ -29,3 +29,5 @@ replace (
 	k8s.io/apimachinery => k8s.io/apimachinery v0.19.2
 	k8s.io/client-go => k8s.io/client-go v0.19.2
 )
+
+replace sigs.k8s.io/controller-runtime => github.com/puppetlabs/kubernetes-sigs-controller-runtime v0.8.4-0.20210317213119-1ad396b3bb0a
