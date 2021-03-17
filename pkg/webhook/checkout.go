@@ -7,27 +7,65 @@ import (
 	"net/http"
 
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
+	"github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/validation"
 	admissionv1 "k8s.io/api/admission/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // +kubebuilder:webhook:name=checkout.validate.webhook.pvpool.puppet.com,groups=pvpool.puppet.com,versions=v1alpha1,resources=checkouts,verbs=create;update,path=/validate-pvpool-puppet-com-v1alpha1-checkout,failurePolicy=fail,mutating=false,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
-// CheckoutValidatorHandler performs validation for the Checkout type.
-type CheckoutValidatorHandler struct {
+// CheckoutValidator extends the Checkout type to provide validation.
+//
+// +kubebuilder:object:root=true
+type CheckoutValidator struct {
+	*pvpoolv1alpha1.Checkout `json:",inline"`
+}
+
+var _ webhook.Validator = &CheckoutValidator{}
+
+func (cv *CheckoutValidator) ValidateCreate() error {
+	return nil
+}
+
+func (cv *CheckoutValidator) ValidateUpdate(old runtime.Object) error {
+	oldCV, ok := old.(*CheckoutValidator)
+	if !ok {
+		return fmt.Errorf("unexpected type %T for old object in update", old)
+	}
+
+	var errs field.ErrorList
+	errs = append(errs, validation.ValidateCheckoutUpdate(cv.Checkout, oldCV.Checkout)...)
+
+	if len(errs) != 0 {
+		return k8serrors.NewInvalid(pvpoolv1alpha1.CheckoutKind.GroupKind(), cv.GetName(), errs)
+	}
+
+	return nil
+}
+
+func (cv *CheckoutValidator) ValidateDelete() error {
+	return nil
+}
+
+// CheckoutRBACValidatorHandler performs access control validation for the
+// Checkout type.
+type CheckoutRBACValidatorHandler struct {
 	cl      client.Client
 	decoder *admission.Decoder
 	mapper  meta.RESTMapper
 }
 
-func (cvh *CheckoutValidatorHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
+func (crvh *CheckoutRBACValidatorHandler) Handle(ctx context.Context, req admission.Request) admission.Response {
 	switch req.Operation {
 	case admissionv1.Create, admissionv1.Update:
 	default:
@@ -35,11 +73,11 @@ func (cvh *CheckoutValidatorHandler) Handle(ctx context.Context, req admission.R
 	}
 
 	checkout := &pvpoolv1alpha1.Checkout{}
-	if err := cvh.decoder.Decode(req, checkout); err != nil {
+	if err := crvh.decoder.Decode(req, checkout); err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	gvr, err := cvh.mapper.RESTMapping(pvpoolv1alpha1.PoolKind.GroupKind())
+	gvr, err := crvh.mapper.RESTMapping(pvpoolv1alpha1.PoolKind.GroupKind())
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -69,7 +107,7 @@ func (cvh *CheckoutValidatorHandler) Handle(ctx context.Context, req admission.R
 			UID:    req.UserInfo.UID,
 		},
 	}
-	if err := cvh.cl.Create(ctx, review); err != nil {
+	if err := crvh.cl.Create(ctx, review); err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
@@ -98,27 +136,30 @@ func (cvh *CheckoutValidatorHandler) Handle(ctx context.Context, req admission.R
 	return admission.Allowed("")
 }
 
-var _ admission.DecoderInjector = &CheckoutValidatorHandler{}
-var _ inject.Mapper = &CheckoutValidatorHandler{}
+var _ admission.DecoderInjector = &CheckoutRBACValidatorHandler{}
+var _ inject.Mapper = &CheckoutRBACValidatorHandler{}
 
-func (cvh *CheckoutValidatorHandler) InjectDecoder(d *admission.Decoder) error {
-	cvh.decoder = d
+func (crvh *CheckoutRBACValidatorHandler) InjectDecoder(d *admission.Decoder) error {
+	crvh.decoder = d
 	return nil
 }
 
-func (cvh *CheckoutValidatorHandler) InjectMapper(m meta.RESTMapper) error {
-	cvh.mapper = m
+func (crvh *CheckoutRBACValidatorHandler) InjectMapper(m meta.RESTMapper) error {
+	crvh.mapper = m
 	return nil
 }
 
 func AddCheckoutValidatorToManager(mgr manager.Manager) error {
-	hnd := &CheckoutValidatorHandler{
-		cl: mgr.GetClient(),
-	}
-
 	mgr.GetWebhookServer().Register(
 		"/validate-pvpool-puppet-com-v1alpha1-checkout",
-		&admission.Webhook{Handler: hnd},
+		&admission.Webhook{
+			Handler: admission.MultiValidatingHandler(
+				admission.ValidatingHandlerFor(&CheckoutValidator{}),
+				&CheckoutRBACValidatorHandler{
+					cl: mgr.GetClient(),
+				},
+			),
+		},
 	)
 	if err := mgr.AddHealthzCheck("checkout", func(_ *http.Request) error {
 		return nil

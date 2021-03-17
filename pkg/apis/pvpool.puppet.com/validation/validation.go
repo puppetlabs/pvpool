@@ -5,6 +5,7 @@ import (
 
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
@@ -83,5 +84,14 @@ func ValidatePoolSpec(spec *pvpoolv1alpha1.PoolSpec, p *field.Path) (errs field.
 func ValidatePoolSpecUpdate(newSpec, oldSpec *pvpoolv1alpha1.PoolSpec, p *field.Path) (errs field.ErrorList) {
 	errs = append(errs, ValidatePoolSpec(newSpec, p)...)
 	errs = append(errs, apimachineryvalidation.ValidateImmutableField(newSpec.Selector, oldSpec.Selector, p.Child("selector"))...)
+	return
+}
+
+func ValidateCheckoutUpdate(newCheckout, oldCheckout *pvpoolv1alpha1.Checkout) (errs field.ErrorList) {
+	if oldCheckout.Status.VolumeName != "" {
+		if !equality.Semantic.DeepEqual(oldCheckout.Spec, newCheckout.Spec) {
+			errs = append(errs, field.Invalid(field.NewPath("spec"), newCheckout.Spec, "field is immutable once a volume has been selected"))
+		}
+	}
 	return
 }

@@ -327,6 +327,78 @@ func TestCheckoutPVCReplacement(t *testing.T) {
 	})
 }
 
+func TestCheckoutMutability(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	WithEnvironmentInTest(t, func(eit *EnvironmentInTest) {
+		eit.WithNamespace(ctx, func(ns *corev1.Namespace) {
+			poolKey1 := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-pool-1",
+			}
+			poolKey2 := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-pool-2",
+			}
+			checkoutKey := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-checkout",
+			}
+			p1 := eit.PoolHelpers.RequireCreatePool(ctx, poolKey1, WithReplicas(3))
+			p2 := eit.PoolHelpers.RequireCreatePool(ctx, poolKey2, WithReplicas(3))
+			p1 = eit.PoolHelpers.RequireWaitSettled(ctx, p1)
+			co := eit.CheckoutHelpers.RequireCreateCheckoutThenWaitCheckedOut(ctx, checkoutKey, p1.Key)
+
+			// Attempt to change the pool. This field should be immutable.
+			co.Object.Spec.PoolRef = pvpoolv1alpha1.PoolReference{
+				Namespace: p2.Key.Namespace,
+				Name:      p2.Key.Name,
+			}
+			err := co.Persist(ctx, eit.ControllerClient)
+			require.True(t, errors.IsInvalid(err))
+
+			// Now we'll scale down the first pool and delete the checkout's
+			// PVC. This should let us change the pool again.
+			_ = eit.PoolHelpers.RequireScalePoolThenWaitSettled(ctx, p1, 0)
+
+			pvc := corev1obj.NewPersistentVolumeClaim(client.ObjectKey{
+				Namespace: co.Object.GetNamespace(),
+				Name:      co.Object.Status.VolumeClaimRef.Name,
+			})
+			ok, err := pvc.Load(ctx, eit.ControllerClient)
+			require.NoError(t, err)
+			require.True(t, ok)
+
+			ok, err = pvc.Delete(ctx, eit.ControllerClient)
+			require.NoError(t, err)
+			require.True(t, ok)
+
+			// Wait for the checkout to reconcile.
+			require.NoError(t, Wait(ctx, func(ctx context.Context) (bool, error) {
+				ok, err := co.Load(ctx, eit.ControllerClient)
+				if err != nil || !ok {
+					return ok, err
+				}
+
+				if cond, _ := co.Condition(pvpoolv1alpha1.CheckoutAcquired); cond.Status == corev1.ConditionTrue {
+					return false, fmt.Errorf("waiting for checkout to reconcile")
+				}
+
+				return true, nil
+			}))
+
+			// Update the pool and then it should check out again successfully.
+			co.Object.Spec.PoolRef = pvpoolv1alpha1.PoolReference{
+				Namespace: p2.Key.Namespace,
+				Name:      p2.Key.Name,
+			}
+			require.NoError(t, co.Persist(ctx, eit.ControllerClient))
+			_ = eit.CheckoutHelpers.RequireWaitCheckedOut(ctx, co)
+		})
+	})
+}
+
 func TestCheckoutRBAC(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
