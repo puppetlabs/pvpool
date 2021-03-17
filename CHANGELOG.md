@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+* Copy the `AccessModes` requested in a checkout to the checkout's volume.
+
 ## [0.1.4] - 2021-03-16
 
 ### Changed

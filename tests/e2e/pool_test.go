@@ -25,7 +25,7 @@ func TestPoolScaleUpDown(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test",
 			}
-			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, key, CreatePoolWithReplicas(3))
+			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, key, WithReplicas(3))
 			_ = eit.PoolHelpers.RequireScalePoolThenWaitSettled(ctx, p, 2)
 		})
 	})
@@ -44,7 +44,7 @@ func TestPoolPVCReplacement(t *testing.T) {
 				Namespace: ns.GetName(),
 				Name:      "test",
 			}
-			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, key, CreatePoolWithReplicas(3))
+			p := eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, key, WithReplicas(3))
 
 			ps := app.NewPoolState(p)
 			ok, err := ps.Load(ctx, eit.ControllerClient)
@@ -86,11 +86,11 @@ func TestPoolsWithSameSelector(t *testing.T) {
 			p1 := eit.PoolHelpers.RequireCreatePool(ctx, client.ObjectKey{
 				Namespace: ns.GetName(),
 				Name:      "test-1",
-			}, CreatePoolWithReplicas(3))
+			}, WithReplicas(3))
 			p2 := eit.PoolHelpers.RequireCreatePool(ctx, client.ObjectKey{
 				Namespace: ns.GetName(),
 				Name:      "test-2",
-			}, CreatePoolWithReplicas(3))
+			}, WithReplicas(3))
 			_ = eit.PoolHelpers.RequireWaitSettled(ctx, p1)
 			_ = eit.PoolHelpers.RequireWaitSettled(ctx, p2)
 		})
