@@ -10,13 +10,16 @@ import (
 
 	corev1obj "github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/api/corev1"
 	rbacv1obj "github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/api/rbacv1"
+	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/stretchr/testify/require"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -227,6 +230,113 @@ func TestCheckoutBeforePoolHasReplicas(t *testing.T) {
 			p = eit.PoolHelpers.RequireScalePoolThenWaitSettled(ctx, p, 3)
 			_ = eit.CheckoutHelpers.RequireWaitCheckedOut(ctx, co)
 			_ = eit.PoolHelpers.RequireWaitSettled(ctx, p)
+		})
+	})
+}
+
+func TestCheckoutClaimName(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	WithEnvironmentInTest(t, func(eit *EnvironmentInTest) {
+		eit.WithNamespace(ctx, func(ns *corev1.Namespace) {
+			poolKey := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-pool",
+			}
+			checkoutKey := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-checkout",
+			}
+			pvcKey := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-pvc",
+			}
+			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(3))
+			_ = eit.CheckoutHelpers.RequireCreateCheckoutThenWaitCheckedOut(ctx, checkoutKey, poolKey, WithClaimName(pvcKey.Name))
+
+			// Now this PVC should exist.
+			pvc := corev1obj.NewPersistentVolumeClaim(pvcKey)
+			ok, err := pvc.Load(ctx, eit.ControllerClient)
+			require.NoError(t, err)
+			require.True(t, ok)
+		})
+	})
+}
+
+func TestCheckoutClaimInUse(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	WithEnvironmentInTest(t, func(eit *EnvironmentInTest) {
+		eit.WithNamespace(ctx, func(ns *corev1.Namespace) {
+			poolKey := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-pool",
+			}
+			checkoutKey := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-checkout",
+			}
+			pvcKey := client.ObjectKey{
+				Namespace: ns.GetName(),
+				Name:      "test-pvc",
+			}
+
+			// Create a PVC with the name we want.
+			pvc := corev1obj.NewPersistentVolumeClaim(pvcKey)
+			pvc.Object.Spec = corev1.PersistentVolumeClaimSpec{
+				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				StorageClassName: pointer.StringPtr(eit.StorageClassName),
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse("10Mi"),
+					},
+				},
+			}
+			require.NoError(t, pvc.Persist(ctx, eit.ControllerClient))
+
+			_ = eit.PoolHelpers.RequireCreatePoolThenWaitSettled(ctx, poolKey, WithReplicas(3))
+			co := eit.CheckoutHelpers.RequireCreateCheckout(ctx, checkoutKey, poolKey, WithClaimName(pvcKey.Name))
+
+			// The checkout should move to a conflict state.
+			require.NoError(t, Wait(ctx, func(ctx context.Context) (bool, error) {
+				if _, err := (lifecycle.RequiredLoader{Loader: co}).Load(ctx, eit.ControllerClient); err != nil {
+					return true, err
+				}
+
+				cond, _ := co.Condition(pvpoolv1alpha1.CheckoutAcquired)
+				switch cond.Status {
+				case corev1.ConditionTrue:
+					return true, fmt.Errorf("volume checked out over existing PVC")
+				case corev1.ConditionUnknown:
+					if cond.Reason == pvpoolv1alpha1.CheckoutAcquiredReasonConflict {
+						return true, nil
+					}
+					fallthrough
+				default:
+					return false, fmt.Errorf("waiting for checkout to reconcile")
+				}
+			}))
+
+			// Now, if we delete the PVC, the checkout should progress.
+			require.NoError(t, Wait(ctx, func(ctx context.Context) (bool, error) {
+				if _, err := (lifecycle.RequiredLoader{Loader: pvc}).Load(ctx, eit.ControllerClient); err != nil {
+					return true, err
+				}
+
+				ok, err := pvc.Delete(ctx, eit.ControllerClient)
+				if errors.IsConflict(err) {
+					return false, err
+				} else if err != nil {
+					return true, err
+				} else if !ok {
+					return true, fmt.Errorf("PVC spuriously deleted")
+				}
+
+				return true, nil
+			}))
+			_ = eit.CheckoutHelpers.RequireWaitCheckedOut(ctx, co)
 		})
 	})
 }

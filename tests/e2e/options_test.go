@@ -13,6 +13,14 @@ func (wr WithReplicas) ApplyToCreatePoolOptions(target *CreatePoolOptions) {
 	target.Replicas = (*int32)(&wr)
 }
 
+type WithClaimName string
+
+var _ CreateCheckoutOption = WithClaimName("")
+
+func (wcn WithClaimName) ApplyToCreateCheckoutOptions(target *CreateCheckoutOptions) {
+	target.ClaimName = string(wcn)
+}
+
 type WithAccessModes []corev1.PersistentVolumeAccessMode
 
 var _ CreateCheckoutOption = WithAccessModes(nil)

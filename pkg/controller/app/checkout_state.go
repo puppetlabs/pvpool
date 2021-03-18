@@ -8,6 +8,7 @@ import (
 	"github.com/puppetlabs/leg/errmap/pkg/errmark"
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/eventctx"
 	corev1obj "github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/api/corev1"
+	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/helper"
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/puppetlabs/pvpool/pkg/obj"
@@ -157,6 +158,17 @@ func (cs *CheckoutState) Load(ctx context.Context, cl client.Client) (bool, erro
 		return false, nil
 	}
 
+	if helper.Exists(cs.PersistentVolumeClaim.Object) {
+		if ctrl := metav1.GetControllerOf(cs.PersistentVolumeClaim.Object); ctrl == nil || ctrl.UID != cs.Checkout.Object.GetUID() {
+			cs.Conds[pvpoolv1alpha1.CheckoutAcquired] = pvpoolv1alpha1.Condition{
+				Status:  corev1.ConditionUnknown,
+				Reason:  pvpoolv1alpha1.CheckoutAcquiredReasonConflict,
+				Message: fmt.Sprintf("A non-controlled PVC with the name %s already exists.", cs.PersistentVolumeClaim.Key.Name),
+			}
+			return false, errmark.MarkTransient(fmt.Errorf("a PVC with this checkout's desired name already exists"))
+		}
+	}
+
 	switch cs.PersistentVolumeClaim.Object.Status.Phase {
 	case corev1.ClaimPending, corev1.ClaimBound:
 		if err := cs.loadFromPVC(ctx, cl); err != nil {
@@ -220,10 +232,18 @@ func (cs *CheckoutState) Persist(ctx context.Context, cl client.Client) error {
 }
 
 func NewCheckoutState(c *obj.Checkout) *CheckoutState {
+	claimName := c.Object.Spec.ClaimName
+	if claimName == "" {
+		claimName = c.Key.Name
+	}
+
 	return &CheckoutState{
-		Checkout:              c,
-		PersistentVolumeClaim: corev1obj.NewPersistentVolumeClaim(c.Key),
-		Conds:                 make(map[pvpoolv1alpha1.CheckoutConditionType]pvpoolv1alpha1.Condition),
+		Checkout: c,
+		PersistentVolumeClaim: corev1obj.NewPersistentVolumeClaim(client.ObjectKey{
+			Namespace: c.Key.Namespace,
+			Name:      claimName,
+		}),
+		Conds: make(map[pvpoolv1alpha1.CheckoutConditionType]pvpoolv1alpha1.Condition),
 	}
 }
 

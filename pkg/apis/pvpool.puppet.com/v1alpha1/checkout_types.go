@@ -30,6 +30,13 @@ type CheckoutSpec struct {
 	// PoolRef is the pool to check out a PVC from.
 	PoolRef PoolReference `json:"poolRef"`
 
+	// ClaimName is the name of the PVC to allocate.
+	//
+	// If not specified, the controller will generate a name for you.
+	//
+	// +optional
+	ClaimName string `json:"claimName,omitempty"`
+
 	// AccessModes are the access modes to assign to the checked out PVC.
 	// Defaults to ReadWriteOnce.
 	//
@@ -57,6 +64,11 @@ const (
 	// CheckoutAcquiredReasonInvalid is used to indicate that the PVC template
 	// for this checkout is invalid.
 	CheckoutAcquiredReasonInvalid = "Invalid"
+
+	// CheckoutAcquiredReasonConflict is used to indicate that another PVC that
+	// isn't owned by this checkout already exists with the name this checkout
+	// wants to use.
+	CheckoutAcquiredReasonConflict = "Conflict"
 
 	// CheckoutAcquiredReasonCheckedOut is used to indicate that a PVC was
 	// successfully taken and is now available.
