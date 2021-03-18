@@ -17,7 +17,11 @@ func main() {
 		manager.Options{
 			LeaderElection: true,
 		},
-		reconciler.AddCheckoutReconcilerToManager,
-		reconciler.AddPoolReconcilerToManager,
+		func(mgr manager.Manager) error {
+			return reconciler.AddCheckoutReconcilerToManager(mgr, cfg)
+		},
+		func(mgr manager.Manager) error {
+			return reconciler.AddPoolReconcilerToManager(mgr, cfg)
+		},
 	))
 }

@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 * The name of the PVC to be checked out is now configurable.
+* The maximum backoff duration for controller reconcilers is now configurable with a default of 1 minute.
 
 ### Changed
 

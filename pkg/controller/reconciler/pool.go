@@ -2,16 +2,21 @@ package reconciler
 
 import (
 	"context"
+	"time"
 
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/puppetlabs/pvpool/pkg/controller/app"
 	"github.com/puppetlabs/pvpool/pkg/obj"
+	"github.com/puppetlabs/pvpool/pkg/opt"
+	"golang.org/x/time/rate"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -86,7 +91,12 @@ func NewPoolReconciler(cl client.Client) *PoolReconciler {
 	}
 }
 
-func AddPoolReconcilerToManager(mgr manager.Manager) error {
+func AddPoolReconcilerToManager(mgr manager.Manager, cfg *opt.Config) error {
+	rl := workqueue.NewMaxOfRateLimiter(
+		workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, cfg.ControllerMaxReconcileBackoffDuration),
+		&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
+	)
+
 	r := NewPoolReconciler(mgr.GetClient())
 
 	return builder.ControllerManagedBy(mgr).
@@ -96,5 +106,6 @@ func AddPoolReconcilerToManager(mgr manager.Manager) error {
 			&source.Kind{Type: &batchv1.Job{}},
 			app.DependencyManager.NewEnqueueRequestForAnnotatedDependencyOf(&pvpoolv1alpha1.Pool{}),
 		).
+		WithOptions(controller.Options{RateLimiter: rl}).
 		Complete(r)
 }

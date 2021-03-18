@@ -12,6 +12,7 @@ require (
 	github.com/puppetlabs/leg/timeutil v0.3.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.7.0
+	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	gotest.tools/gotestsum v1.6.1
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2

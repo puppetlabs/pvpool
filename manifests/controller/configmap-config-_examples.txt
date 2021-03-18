@@ -4,3 +4,8 @@
 # debug turns on extra verbosity in the container logs for the
 # controller pods.
 debug: "false"
+
+# max-reconcile-backoff-duration is the amount of time (expressed as
+# a Go time.Duration-compatible string) that the controller may wait
+# before attempting to reconcile an object with previous errors.
+max-reconcile-backoff-duration: "1m"
