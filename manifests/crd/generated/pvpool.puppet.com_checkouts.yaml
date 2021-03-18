@@ -52,6 +52,10 @@ spec:
                 items:
                   type: string
                 type: array
+              claimName:
+                description: "ClaimName is the name of the PVC to allocate. \n If
+                  not specified, the controller will generate a name for you."
+                type: string
               poolRef:
                 description: PoolRef is the pool to check out a PVC from.
                 properties:

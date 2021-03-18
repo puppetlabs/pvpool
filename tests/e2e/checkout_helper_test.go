@@ -42,6 +42,7 @@ func (ch *CheckoutHelpers) RequireWaitCheckedOut(ctx context.Context, co *obj.Ch
 }
 
 type CreateCheckoutOptions struct {
+	ClaimName   string
 	AccessModes []corev1.PersistentVolumeAccessMode
 }
 
@@ -65,6 +66,7 @@ func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey clie
 			Namespace: poolKey.Namespace,
 			Name:      poolKey.Name,
 		},
+		ClaimName:   o.ClaimName,
 		AccessModes: o.AccessModes,
 	}
 	if err := co.Persist(ctx, ch.eit.ControllerClient); err != nil {

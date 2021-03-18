@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Added
+
+* The name of the PVC to be checked out is now configurable.
+
 ### Changed
 
 * A checkout's spec is now immutable when it has selected a volume to use from a pool.
