@@ -23,6 +23,12 @@ spec:
               name: pvpool-controller-config
               key: debug
               optional: true
+        - name: PVPOOL_CONTROLLER_MAX_RECONCILE_BACKOFF_DURATION
+          valueFrom:
+            configMapKeyRef:
+              name: pvpool-controller-config
+              key: max-reconcile-backoff-duration
+              optional: true
         - name: PVPOOL_NAME
           valueFrom:
             fieldRef:

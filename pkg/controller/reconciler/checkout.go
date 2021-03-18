@@ -2,14 +2,19 @@ package reconciler
 
 import (
 	"context"
+	"time"
 
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
 	"github.com/puppetlabs/pvpool/pkg/controller/app"
 	"github.com/puppetlabs/pvpool/pkg/obj"
+	"github.com/puppetlabs/pvpool/pkg/opt"
+	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -71,11 +76,17 @@ func NewCheckoutReconciler(cl client.Client) *CheckoutReconciler {
 	}
 }
 
-func AddCheckoutReconcilerToManager(mgr manager.Manager) error {
+func AddCheckoutReconcilerToManager(mgr manager.Manager, cfg *opt.Config) error {
+	rl := workqueue.NewMaxOfRateLimiter(
+		workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, cfg.ControllerMaxReconcileBackoffDuration),
+		&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
+	)
+
 	r := NewCheckoutReconciler(mgr.GetClient())
 
 	return builder.ControllerManagedBy(mgr).
 		For(&pvpoolv1alpha1.Checkout{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
+		WithOptions(controller.Options{RateLimiter: rl}).
 		Complete(r)
 }
