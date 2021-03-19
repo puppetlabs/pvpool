@@ -6,7 +6,7 @@ import (
 
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
-	"github.com/puppetlabs/pvpool/pkg/obj"
+	pvpoolv1alpha1obj "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1/obj"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -16,7 +16,7 @@ type CheckoutHelpers struct {
 	eit *EnvironmentInTest
 }
 
-func (ch *CheckoutHelpers) WaitCheckedOut(ctx context.Context, co *obj.Checkout) (*obj.Checkout, error) {
+func (ch *CheckoutHelpers) WaitCheckedOut(ctx context.Context, co *pvpoolv1alpha1obj.Checkout) (*pvpoolv1alpha1obj.Checkout, error) {
 	err := Wait(ctx, func(ctx context.Context) (bool, error) {
 		if _, err := (lifecycle.RequiredLoader{Loader: co}).Load(ctx, ch.eit.ControllerClient); err != nil {
 			return true, err
@@ -35,7 +35,7 @@ func (ch *CheckoutHelpers) WaitCheckedOut(ctx context.Context, co *obj.Checkout)
 	return co, nil
 }
 
-func (ch *CheckoutHelpers) RequireWaitCheckedOut(ctx context.Context, co *obj.Checkout) *obj.Checkout {
+func (ch *CheckoutHelpers) RequireWaitCheckedOut(ctx context.Context, co *pvpoolv1alpha1obj.Checkout) *pvpoolv1alpha1obj.Checkout {
 	co, err := ch.WaitCheckedOut(ctx, co)
 	require.NoError(ch.eit.t, err)
 	return co
@@ -56,11 +56,11 @@ func (o *CreateCheckoutOptions) ApplyOptions(opts []CreateCheckoutOption) {
 	}
 }
 
-func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) (*obj.Checkout, error) {
+func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) (*pvpoolv1alpha1obj.Checkout, error) {
 	o := &CreateCheckoutOptions{}
 	o.ApplyOptions(opts)
 
-	co := obj.NewCheckout(key)
+	co := pvpoolv1alpha1obj.NewCheckout(key)
 	co.Object.Spec = pvpoolv1alpha1.CheckoutSpec{
 		PoolRef: pvpoolv1alpha1.PoolReference{
 			Namespace: poolKey.Namespace,
@@ -76,13 +76,13 @@ func (ch *CheckoutHelpers) CreateCheckout(ctx context.Context, key, poolKey clie
 	return co, nil
 }
 
-func (ch *CheckoutHelpers) RequireCreateCheckout(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) *obj.Checkout {
+func (ch *CheckoutHelpers) RequireCreateCheckout(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) *pvpoolv1alpha1obj.Checkout {
 	co, err := ch.CreateCheckout(ctx, key, poolKey, opts...)
 	require.NoError(ch.eit.t, err)
 	return co
 }
 
-func (ch *CheckoutHelpers) CreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) (*obj.Checkout, error) {
+func (ch *CheckoutHelpers) CreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) (*pvpoolv1alpha1obj.Checkout, error) {
 	co, err := ch.CreateCheckout(ctx, key, poolKey, opts...)
 	if err != nil {
 		return nil, err
@@ -91,6 +91,6 @@ func (ch *CheckoutHelpers) CreateCheckoutThenWaitCheckedOut(ctx context.Context,
 	return ch.WaitCheckedOut(ctx, co)
 }
 
-func (ch *CheckoutHelpers) RequireCreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) *obj.Checkout {
+func (ch *CheckoutHelpers) RequireCreateCheckoutThenWaitCheckedOut(ctx context.Context, key, poolKey client.ObjectKey, opts ...CreateCheckoutOption) *pvpoolv1alpha1obj.Checkout {
 	return ch.RequireWaitCheckedOut(ctx, ch.RequireCreateCheckout(ctx, key, poolKey, opts...))
 }

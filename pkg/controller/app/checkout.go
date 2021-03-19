@@ -2,11 +2,11 @@ package app
 
 import (
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
-	"github.com/puppetlabs/pvpool/pkg/obj"
+	pvpoolv1alpha1obj "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1/obj"
 	corev1 "k8s.io/api/core/v1"
 )
 
-func ConfigureCheckout(cs *CheckoutState) *obj.Checkout {
+func ConfigureCheckout(cs *CheckoutState) *pvpoolv1alpha1obj.Checkout {
 	if cs.PersistentVolume == nil {
 		// Something didn't go right when loading probably. Clear our state.
 		cs.Checkout.Object.Status.VolumeName = ""

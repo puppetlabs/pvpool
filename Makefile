@@ -87,7 +87,7 @@ define build_artifact_manifest_yaml_rule
 $(call build_artifact_manifest_yaml,$(1)): export CGO_ENABLED := 0
 $(call build_artifact_manifest_yaml,$(1)): generate $(call build_artifact_dir,$(1)) $(call versioned_artifact_kustomization_yaml,$(1)) .FORCE
 	$(GO) run sigs.k8s.io/kustomize/kustomize/v3 build $(call versioned_artifact_dir,$(1)) \$(eval)
-		| $(KO) resolve -f - >$$@
+		| $(KO) resolve --tags "$(PVPOOL_VERSION)" -f - >$$@
 
 # The Kustomization file to allow other users to also leverage Kustomize with
 # the built target.
