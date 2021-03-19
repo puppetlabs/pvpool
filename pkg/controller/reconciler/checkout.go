@@ -5,8 +5,8 @@ import (
 	"time"
 
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
+	pvpoolv1alpha1obj "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1/obj"
 	"github.com/puppetlabs/pvpool/pkg/controller/app"
-	"github.com/puppetlabs/pvpool/pkg/obj"
 	"github.com/puppetlabs/pvpool/pkg/opt"
 	"golang.org/x/time/rate"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +40,7 @@ func (pr *CheckoutReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		}
 	}()
 
-	checkout := obj.NewCheckout(req.NamespacedName)
+	checkout := pvpoolv1alpha1obj.NewCheckout(req.NamespacedName)
 	if ok, err := checkout.Load(ctx, pr.cl); err != nil || !ok {
 		return reconcile.Result{}, err
 	}

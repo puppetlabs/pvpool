@@ -11,7 +11,7 @@ import (
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	"github.com/puppetlabs/leg/mathutil/pkg/rand"
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
-	"github.com/puppetlabs/pvpool/pkg/obj"
+	pvpoolv1alpha1obj "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1/obj"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +20,7 @@ import (
 )
 
 type PoolState struct {
-	Pool         *obj.Pool
+	Pool         *pvpoolv1alpha1obj.Pool
 	Initializing PoolReplicas
 	Available    PoolReplicas
 	Stale        PoolReplicas
@@ -284,7 +284,7 @@ func (ps *PoolState) Persist(ctx context.Context, cl client.Client) error {
 	return nil
 }
 
-func NewPoolState(p *obj.Pool) *PoolState {
+func NewPoolState(p *pvpoolv1alpha1obj.Pool) *PoolState {
 	return &PoolState{
 		Pool:  p,
 		Conds: make(map[pvpoolv1alpha1.PoolConditionType]pvpoolv1alpha1.Condition),

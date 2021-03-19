@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Changed
+
+* The location of the `validation` and `obj` packages has been moved to better represent the specific APIs they work with.
+
+### Build
+
+* Images are now uploaded with the tagged version instead of "latest".
+
 ## [0.2.0] - 2021-03-18
 
 ### Added

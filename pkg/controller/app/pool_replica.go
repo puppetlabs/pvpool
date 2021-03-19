@@ -11,8 +11,8 @@ import (
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	"github.com/puppetlabs/leg/k8sutil/pkg/norm"
 	"github.com/puppetlabs/leg/mathutil/pkg/rand"
-	"github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/validation"
-	"github.com/puppetlabs/pvpool/pkg/obj"
+	pvpoolv1alpha1obj "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1/obj"
+	pvpoolv1alpha1validation "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1/validation"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,12 +40,12 @@ var (
 				},
 			},
 		},
-		BackoffLimit: pointer.Int32Ptr(validation.MountJobMaxBackoffLimit),
+		BackoffLimit: pointer.Int32Ptr(pvpoolv1alpha1validation.MountJobMaxBackoffLimit),
 	}
 )
 
 type PoolReplica struct {
-	Pool                  *obj.Pool
+	Pool                  *pvpoolv1alpha1obj.Pool
 	PersistentVolumeClaim *corev1obj.PersistentVolumeClaim
 	PersistentVolume      *corev1obj.PersistentVolume
 	InitJob               *batchv1obj.Job
@@ -122,7 +122,7 @@ func (pr *PoolReplica) Persist(ctx context.Context, cl client.Client) error {
 		// Don't use OwnUncontrolled here because it will block deletion of the job.
 		// Just use SetDependencyOf, our external tracking mechanism.
 		if err := DependencyManager.SetDependencyOf(pr.InitJob.Object, lifecycle.TypedObject{
-			GVK:    obj.PoolKind,
+			GVK:    pvpoolv1alpha1obj.PoolKind,
 			Object: pr.Pool.Object,
 		}); err != nil {
 			return err
@@ -145,7 +145,7 @@ func (pr *PoolReplica) Available() bool {
 	return pr.PersistentVolume != nil && pr.PersistentVolumeClaim.Object.GetAnnotations()[PoolReplicaPhaseAnnotationKey] == PoolReplicaPhaseAnnotationValueAvailable
 }
 
-func NewPoolReplica(p *obj.Pool, key client.ObjectKey) *PoolReplica {
+func NewPoolReplica(p *pvpoolv1alpha1obj.Pool, key client.ObjectKey) *PoolReplica {
 	return &PoolReplica{
 		Pool:                  p,
 		PersistentVolumeClaim: corev1obj.NewPersistentVolumeClaim(key),
@@ -202,15 +202,15 @@ func ConfigurePoolReplica(pr *PoolReplica) *PoolReplica {
 
 		// Configure some of the required fields.
 		if pr.InitJob.Object.Spec.Template.Spec.RestartPolicy == "" {
-			pr.InitJob.Object.Spec.Template.Spec.RestartPolicy = validation.MountJobSpecBackoffPolicy
+			pr.InitJob.Object.Spec.Template.Spec.RestartPolicy = pvpoolv1alpha1validation.MountJobSpecBackoffPolicy
 		}
 
-		if pr.InitJob.Object.Spec.ActiveDeadlineSeconds == nil || *pr.InitJob.Object.Spec.ActiveDeadlineSeconds > validation.MountJobMaxActiveDeadlineSeconds {
-			pr.InitJob.Object.Spec.ActiveDeadlineSeconds = pointer.Int64Ptr(validation.MountJobMaxActiveDeadlineSeconds)
+		if pr.InitJob.Object.Spec.ActiveDeadlineSeconds == nil || *pr.InitJob.Object.Spec.ActiveDeadlineSeconds > pvpoolv1alpha1validation.MountJobMaxActiveDeadlineSeconds {
+			pr.InitJob.Object.Spec.ActiveDeadlineSeconds = pointer.Int64Ptr(pvpoolv1alpha1validation.MountJobMaxActiveDeadlineSeconds)
 		}
 
-		if pr.InitJob.Object.Spec.BackoffLimit != nil && *pr.InitJob.Object.Spec.BackoffLimit > validation.MountJobMaxBackoffLimit {
-			pr.InitJob.Object.Spec.BackoffLimit = pointer.Int32Ptr(validation.MountJobMaxBackoffLimit)
+		if pr.InitJob.Object.Spec.BackoffLimit != nil && *pr.InitJob.Object.Spec.BackoffLimit > pvpoolv1alpha1validation.MountJobMaxBackoffLimit {
+			pr.InitJob.Object.Spec.BackoffLimit = pointer.Int32Ptr(pvpoolv1alpha1validation.MountJobMaxBackoffLimit)
 		}
 
 		// Set up volume.
@@ -233,7 +233,7 @@ func ConfigurePoolReplica(pr *PoolReplica) *PoolReplica {
 	return pr
 }
 
-func ApplyPoolReplica(ctx context.Context, cl client.Client, p *obj.Pool, id string) (*PoolReplica, error) {
+func ApplyPoolReplica(ctx context.Context, cl client.Client, p *pvpoolv1alpha1obj.Pool, id string) (*PoolReplica, error) {
 	key := client.ObjectKey{
 		Namespace: p.Key.Namespace,
 		Name:      norm.MetaNameSuffixed(p.Key.Name, fmt.Sprintf("-%s", id)),

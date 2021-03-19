@@ -12,29 +12,20 @@ import (
 var CheckoutKind = pvpoolv1alpha1.CheckoutKind
 
 type Checkout struct {
+	*helper.NamespaceScopedAPIObject
+
 	Key    client.ObjectKey
 	Object *pvpoolv1alpha1.Checkout
 }
 
-var _ lifecycle.Deleter = &Checkout{}
-var _ lifecycle.Loader = &Checkout{}
-var _ lifecycle.Owner = &Checkout{}
-var _ lifecycle.Persister = &Checkout{}
-
-func (c *Checkout) Delete(ctx context.Context, cl client.Client, opts ...lifecycle.DeleteOption) (bool, error) {
-	return helper.DeleteIgnoreNotFound(ctx, cl, c.Object, opts...)
+func makeCheckout(key client.ObjectKey, obj *pvpoolv1alpha1.Checkout) *Checkout {
+	c := &Checkout{Key: key, Object: obj}
+	c.NamespaceScopedAPIObject = helper.ForNamespaceScopedAPIObject(&c.Key, lifecycle.TypedObject{GVK: CheckoutKind, Object: c.Object})
+	return c
 }
 
-func (c *Checkout) Own(ctx context.Context, other lifecycle.Ownable) error {
-	return other.Owned(ctx, lifecycle.TypedObject{GVK: CheckoutKind, Object: c.Object})
-}
-
-func (c *Checkout) Load(ctx context.Context, cl client.Client) (bool, error) {
-	return helper.GetIgnoreNotFound(ctx, cl, c.Key, c.Object)
-}
-
-func (c *Checkout) Persist(ctx context.Context, cl client.Client) error {
-	return helper.CreateOrUpdate(ctx, cl, c.Object, helper.WithObjectKey(c.Key))
+func (c *Checkout) Copy() *Checkout {
+	return makeCheckout(c.Key, c.Object.DeepCopy())
 }
 
 func (c *Checkout) PersistStatus(ctx context.Context, cl client.Client) error {
@@ -51,15 +42,13 @@ func (c *Checkout) Condition(typ pvpoolv1alpha1.CheckoutConditionType) (pvpoolv1
 }
 
 func NewCheckout(key client.ObjectKey) *Checkout {
-	return &Checkout{
-		Key:    key,
-		Object: &pvpoolv1alpha1.Checkout{},
-	}
+	return makeCheckout(key, &pvpoolv1alpha1.Checkout{})
 }
 
 func NewCheckoutFromObject(obj *pvpoolv1alpha1.Checkout) *Checkout {
-	return &Checkout{
-		Key:    client.ObjectKeyFromObject(obj),
-		Object: obj,
-	}
+	return makeCheckout(client.ObjectKeyFromObject(obj), obj)
+}
+
+func NewCheckoutPatcher(upd, orig *Pool) lifecycle.Persister {
+	return helper.NewPatcher(upd.Object, orig.Object, helper.WithObjectKey(upd.Key))
 }

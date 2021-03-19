@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
-	"github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/validation"
+	pvpoolv1alpha1validation "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1/validation"
 	"k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -27,7 +27,7 @@ var _ webhook.Validator = &PoolValidator{}
 
 func (pv *PoolValidator) ValidateCreate() error {
 	var errs field.ErrorList
-	errs = append(errs, validation.ValidatePoolSpec(&pv.Spec, field.NewPath("spec"))...)
+	errs = append(errs, pvpoolv1alpha1validation.ValidatePoolSpec(&pv.Spec, field.NewPath("spec"))...)
 
 	if len(errs) != 0 {
 		return errors.NewInvalid(pvpoolv1alpha1.PoolKind.GroupKind(), pv.GetName(), errs)
@@ -43,7 +43,7 @@ func (pv *PoolValidator) ValidateUpdate(old runtime.Object) error {
 	}
 
 	var errs field.ErrorList
-	errs = append(errs, validation.ValidatePoolSpecUpdate(&pv.Spec, &oldPV.Spec, field.NewPath("spec"))...)
+	errs = append(errs, pvpoolv1alpha1validation.ValidatePoolSpecUpdate(&pv.Spec, &oldPV.Spec, field.NewPath("spec"))...)
 
 	if len(errs) != 0 {
 		return errors.NewInvalid(pvpoolv1alpha1.PoolKind.GroupKind(), pv.GetName(), errs)

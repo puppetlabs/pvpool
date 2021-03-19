@@ -11,7 +11,7 @@ import (
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/helper"
 	"github.com/puppetlabs/leg/k8sutil/pkg/controller/obj/lifecycle"
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
-	"github.com/puppetlabs/pvpool/pkg/obj"
+	pvpoolv1alpha1obj "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1/obj"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +21,7 @@ import (
 )
 
 type CheckoutState struct {
-	Checkout              *obj.Checkout
+	Checkout              *pvpoolv1alpha1obj.Checkout
 	PersistentVolumeClaim *corev1obj.PersistentVolumeClaim
 
 	// PersistentVolume is the PV corresponding to the PVC owned by this
@@ -85,7 +85,7 @@ func (cs *CheckoutState) loadFromVolumeName(ctx context.Context, cl client.Clien
 		switch {
 		case ctrl.UID == cs.Checkout.Object.GetUID():
 			klog.V(4).InfoS("checkout state: load: persistent volume is used by this checkout", "checkout", cs.Checkout.Key, "pvc", claim.Key, "pv", volume.Name)
-		case schema.FromAPIVersionAndKind(ctrl.APIVersion, ctrl.Kind) == obj.CheckoutKind:
+		case schema.FromAPIVersionAndKind(ctrl.APIVersion, ctrl.Kind) == pvpoolv1alpha1obj.CheckoutKind:
 			// Race condition where the claim has been reassigned from under us.
 			klog.InfoS("checkout state: load: persistent volume stolen (not using)", "checkout", cs.Checkout.Key, "pvc", claim.Key, "pv", volume.Name)
 			return nil
@@ -108,7 +108,7 @@ func (cs *CheckoutState) loadFromPool(ctx context.Context, cl client.Client) (bo
 		namespace = cs.Checkout.Key.Namespace
 	}
 
-	pool := obj.NewPool(client.ObjectKey{
+	pool := pvpoolv1alpha1obj.NewPool(client.ObjectKey{
 		Namespace: namespace,
 		Name:      cs.Checkout.Object.Spec.PoolRef.Name,
 	})
@@ -231,7 +231,7 @@ func (cs *CheckoutState) Persist(ctx context.Context, cl client.Client) error {
 	return nil
 }
 
-func NewCheckoutState(c *obj.Checkout) *CheckoutState {
+func NewCheckoutState(c *pvpoolv1alpha1obj.Checkout) *CheckoutState {
 	claimName := c.Object.Spec.ClaimName
 	if claimName == "" {
 		claimName = c.Key.Name

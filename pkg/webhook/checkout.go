@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	pvpoolv1alpha1 "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1"
-	"github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/validation"
+	pvpoolv1alpha1validation "github.com/puppetlabs/pvpool/pkg/apis/pvpool.puppet.com/v1alpha1/validation"
 	admissionv1 "k8s.io/api/admission/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -44,7 +44,7 @@ func (cv *CheckoutValidator) ValidateUpdate(old runtime.Object) error {
 	}
 
 	var errs field.ErrorList
-	errs = append(errs, validation.ValidateCheckoutUpdate(cv.Checkout, oldCV.Checkout)...)
+	errs = append(errs, pvpoolv1alpha1validation.ValidateCheckoutUpdate(cv.Checkout, oldCV.Checkout)...)
 
 	if len(errs) != 0 {
 		return k8serrors.NewInvalid(pvpoolv1alpha1.CheckoutKind.GroupKind(), cv.GetName(), errs)
