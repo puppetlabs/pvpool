@@ -1,6 +1,6 @@
 module github.com/puppetlabs/pvpool
 
-go 1.14
+go 1.16
 
 require (
 	github.com/golangci/golangci-lint v1.36.0
@@ -12,23 +12,14 @@ require (
 	github.com/puppetlabs/leg/timeutil v0.3.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
+	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6
 	gotest.tools/gotestsum v1.6.1
-	k8s.io/api v0.20.2
-	k8s.io/apimachinery v0.20.2
-	k8s.io/client-go v0.20.2
-	k8s.io/klog/v2 v2.5.0
-	k8s.io/utils v0.0.0-20210111153108-fddb29f9d009
-	sigs.k8s.io/controller-runtime v0.8.1
+	k8s.io/api v0.21.2
+	k8s.io/apimachinery v0.21.2
+	k8s.io/client-go v0.21.2
+	k8s.io/klog/v2 v2.8.0
+	k8s.io/utils v0.0.0-20210527160623-6fdb442a123b
+	sigs.k8s.io/controller-runtime v0.9.2
 	sigs.k8s.io/controller-tools v0.4.1
 	sigs.k8s.io/kustomize/kustomize/v3 v3.9.2
 )
-
-replace (
-	k8s.io/api => k8s.io/api v0.19.2
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.19.2
-	k8s.io/client-go => k8s.io/client-go v0.19.2
-)
-
-replace sigs.k8s.io/controller-runtime => github.com/puppetlabs/kubernetes-sigs-controller-runtime v0.8.4-0.20210317213119-1ad396b3bb0a
