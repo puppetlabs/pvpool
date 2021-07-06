@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2021-07-06
+
 ### Changed
 
 * The controller now requires permission to create and delete persistent volumes.
@@ -70,7 +72,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 * Initial release.
 
-[Unreleased]: https://github.com/puppetlabs/pvpool/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/puppetlabs/pvpool/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/puppetlabs/pvpool/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/puppetlabs/pvpool/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/puppetlabs/pvpool/compare/v0.1.4...v0.2.0
 [0.1.4]: https://github.com/puppetlabs/pvpool/compare/v0.1.3...v0.1.4
