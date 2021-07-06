@@ -6,7 +6,7 @@ jobs:
     steps:
     - uses: actions/setup-go@v2
       with:
-        go-version: '1.14'
+        go-version: '1.16'
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
@@ -23,7 +23,7 @@ jobs:
     steps:
     - uses: actions/setup-go@v2
       with:
-        go-version: '1.14'
+        go-version: '1.16'
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
@@ -54,7 +54,7 @@ jobs:
     steps:
     - uses: actions/setup-go@v2
       with:
-        go-version: '1.14'
+        go-version: '1.16'
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
@@ -159,7 +159,7 @@ jobs:
       run: gcloud -q auth configure-docker
     - uses: actions/setup-go@v2
       with:
-        go-version: '1.14'
+        go-version: '1.16'
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:

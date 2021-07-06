@@ -37,8 +37,11 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - persistentvolumeclaims
   - persistentvolumes
   verbs:
+  - create
+  - delete
   - get
   - list
   - update

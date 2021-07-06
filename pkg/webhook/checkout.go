@@ -154,7 +154,7 @@ func AddCheckoutValidatorToManager(mgr manager.Manager) error {
 		"/validate-pvpool-puppet-com-v1alpha1-checkout",
 		&admission.Webhook{
 			Handler: admission.MultiValidatingHandler(
-				admission.ValidatingHandlerFor(&CheckoutValidator{}),
+				admission.ValidatingWebhookFor(&CheckoutValidator{}).Handler,
 				&CheckoutRBACValidatorHandler{
 					cl: mgr.GetClient(),
 				},
