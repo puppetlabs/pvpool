@@ -75,3 +75,12 @@ rules:
   - pools/status
   verbs:
   - update
+- apiGroups:
+  - storage
+  resources:
+  - volumeattachments
+  verbs:
+  - get
+  - list
+  - update
+  - watch

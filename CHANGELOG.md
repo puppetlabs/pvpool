@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+* Track VolumeAttachments of managed pool replicas to work around changes to AccessModes not being handled in checkouts.
+
 ## [0.4.0] - 2021-07-06
 
 ### Changed
