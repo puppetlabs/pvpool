@@ -20,7 +20,8 @@ import (
 )
 
 type PoolState struct {
-	Pool         *pvpoolv1alpha1obj.Pool
+	Pool *pvpoolv1alpha1obj.Pool
+
 	Initializing PoolReplicas
 	Available    PoolReplicas
 	Stale        PoolReplicas
