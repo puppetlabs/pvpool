@@ -12,10 +12,10 @@ import (
 	"golang.org/x/time/rate"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -26,13 +26,14 @@ import (
 // +kubebuilder:rbac:groups=pvpool.puppet.com,resources=pools/status,verbs=update
 // +kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;delete
+// +kubebuilder:rbac:groups=storage.k8s.io,resources=volumeattachments,verbs=get;list;watch;update
 
 const (
 	PoolReconcilerFinalizerName = "pvpool.puppet.com/pool-reconciler"
 )
 
 type PoolReconciler struct {
-	cl client.Client
+	cl lifecycle.CacheBypasserClient
 }
 
 var _ reconcile.Reconciler = &PoolReconciler{}
@@ -85,7 +86,7 @@ func (pr *PoolReconciler) Reconcile(ctx context.Context, req reconcile.Request) 
 	return
 }
 
-func NewPoolReconciler(cl client.Client) *PoolReconciler {
+func NewPoolReconciler(cl lifecycle.CacheBypasserClient) *PoolReconciler {
 	return &PoolReconciler{
 		cl: cl,
 	}
@@ -97,13 +98,17 @@ func AddPoolReconcilerToManager(mgr manager.Manager, cfg *opt.Config) error {
 		&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)},
 	)
 
-	r := NewPoolReconciler(mgr.GetClient())
+	r := NewPoolReconciler(lifecycle.CacheBypasserClientForManager(mgr))
 
 	return builder.ControllerManagedBy(mgr).
 		For(&pvpoolv1alpha1.Pool{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Watches(
 			&source.Kind{Type: &batchv1.Job{}},
+			app.DependencyManager.NewEnqueueRequestForAnnotatedDependencyOf(&pvpoolv1alpha1.Pool{}),
+		).
+		Watches(
+			&source.Kind{Type: &storagev1.VolumeAttachment{}},
 			app.DependencyManager.NewEnqueueRequestForAnnotatedDependencyOf(&pvpoolv1alpha1.Pool{}),
 		).
 		WithOptions(controller.Options{RateLimiter: rl}).

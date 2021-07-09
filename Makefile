@@ -28,6 +28,8 @@ export GOFLAGS ?=
 #
 
 MAKEFLAGS += -rR
+SHELL = /bin/bash
+.SHELLFLAGS = -euo pipefail -c
 
 ARTIFACTS_DIR := artifacts
 MANIFEST_DIRS := $(patsubst %/,%,$(wildcard manifests/*/))

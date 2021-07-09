@@ -280,7 +280,7 @@ func ConfigureCheckoutState(cs *CheckoutState) (*CheckoutState, error) {
 	//
 	// It's important that we only set this once, because once we modify the
 	// target PV, it will not have the right value!
-	if _, ok := cs.LockedPersistentVolume.Object.GetAnnotations()[CheckoutReclaimPolicyAnnotationKey]; !ok {
+	if !metav1.HasAnnotation(cs.LockedPersistentVolume.Object.ObjectMeta, CheckoutReclaimPolicyAnnotationKey) {
 		helper.Annotate(cs.LockedPersistentVolume.Object, CheckoutReclaimPolicyAnnotationKey, string(cs.LockedPersistentVolume.Object.Spec.PersistentVolumeReclaimPolicy))
 	}
 
